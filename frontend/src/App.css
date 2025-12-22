@@ -1,0 +1,223 @@
+.app {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: background-color 0.3s ease;
+}
+
+.app.dark-mode {
+  background: #1a1a1a;
+}
+
+.app-header {
+  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+  color: #006064;
+  padding: 30px;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.app.dark-mode .app-header {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6b 100%);
+  color: #b0d4f1;
+  border-bottom-color: #2d2d2d;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.app-header h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+  color: #00838f;
+  transition: color 0.3s ease;
+}
+
+.app.dark-mode .app-header h1 {
+  color: #4fc3f7;
+}
+
+.app-header p {
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+.theme-toggle {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.app.dark-mode .theme-toggle {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+.app.dark-mode .theme-toggle:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.app-content {
+  padding: 30px;
+  background: #fafafa;
+  transition: background-color 0.3s ease;
+}
+
+.app.dark-mode .app-content {
+  background: #252525;
+}
+
+.upload-section {
+  margin-bottom: 30px;
+}
+
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 15px;
+  border: 1px solid #ffcdd2;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.app.dark-mode .error-message {
+  background: #4a1f1f;
+  color: #ef5350;
+  border-color: #6a2f2f;
+}
+
+.controls-section {
+  margin-bottom: 30px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.control-group {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.app.dark-mode .control-group {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.control-group h3 {
+  margin-bottom: 15px;
+  color: #424242;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}
+
+.app.dark-mode .control-group h3 {
+  color: #e0e0e0;
+}
+
+.control-group label {
+  display: block;
+  margin-bottom: 10px;
+  color: #616161;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.app.dark-mode .control-group label {
+  color: #b0b0b0;
+}
+
+.control-group input[type="number"],
+.control-group input[type="range"] {
+  width: 100%;
+  margin: 10px 0;
+}
+
+.control-group input[type="radio"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.control-group input[type="radio"]:checked {
+  accent-color: #4dd0e1;
+}
+
+.app.dark-mode .control-group input[type="radio"]:checked {
+  accent-color: #1976d2;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.process-button {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
+  color: #006064;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s ease;
+}
+
+.app.dark-mode .process-button {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: #e3f2fd;
+}
+
+.process-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(77, 208, 225, 0.4);
+}
+
+.app.dark-mode .process-button:hover:not(:disabled) {
+  box-shadow: 0 5px 15px rgba(25, 118, 210, 0.4);
+}
+
+.process-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.preview-section {
+  margin-top: 30px;
+}
+
+@media (max-width: 768px) {
+  .controls-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-header h1 {
+    font-size: 2rem;
+  }
+}
+
