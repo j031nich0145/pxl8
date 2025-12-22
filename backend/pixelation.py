@@ -19,16 +19,16 @@ def pixelate_image(
     
     Args:
         image: PIL Image object
-        target_width: Target width in pixels (minimum 10)
-        target_height: Target height in pixels (minimum 10)
+        target_width: Target width in pixels (minimum 1)
+        target_height: Target height in pixels (minimum 1)
         method: 'nearest' for nearest neighbor, 'average' for pixel averaging
     
     Returns:
         Pixelated PIL Image
     """
-    # Ensure minimum dimensions (10x10 for maximum pixelation)
-    target_width = max(10, target_width)
-    target_height = max(10, target_height)
+    # Ensure minimum dimensions (1x1 for maximum pixelation - largest possible pixels)
+    target_width = max(1, target_width)
+    target_height = max(1, target_height)
     
     # Get original dimensions
     orig_width, orig_height = image.size

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import './ImagePreview.css'
 
-function ImagePreview({ originalFile, processedFilename, onDownload }) {
+function ImagePreview({ 
+  originalFile, 
+  processedImageUrl
+}) {
   const [originalUrl, setOriginalUrl] = useState(null)
-  const [processedUrl, setProcessedUrl] = useState(null)
 
   useEffect(() => {
     if (originalFile) {
@@ -13,20 +15,11 @@ function ImagePreview({ originalFile, processedFilename, onDownload }) {
     }
   }, [originalFile])
 
-  useEffect(() => {
-    if (processedFilename) {
-      const url = `/api/image/processed/${processedFilename}`
-      setProcessedUrl(url)
-    } else {
-      setProcessedUrl(null)
-    }
-  }, [processedFilename])
-
   return (
     <div className="image-preview">
       <div className="preview-grid">
         <div className="preview-item">
-          <h3>Original Image</h3>
+          <h3>Original</h3>
           {originalUrl && (
             <div className="image-container">
               <img src={originalUrl} alt="Original" />
@@ -35,17 +28,14 @@ function ImagePreview({ originalFile, processedFilename, onDownload }) {
         </div>
 
         <div className="preview-item">
-          <h3>Processed Image</h3>
-          {processedUrl ? (
+          <h3>Pixelated</h3>
+          {processedImageUrl ? (
             <div className="image-container">
-              <img src={processedUrl} alt="Processed" />
-              <button className="download-button" onClick={onDownload}>
-                Download
-              </button>
+              <img src={processedImageUrl} alt="Processed" />
             </div>
           ) : (
             <div className="placeholder">
-              <p>Process an image to see the result here</p>
+              <p>Adjust slider to see result</p>
             </div>
           )}
         </div>

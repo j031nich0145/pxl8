@@ -1,33 +1,33 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ImageUpload from './components/ImageUpload'
 import PixelationControls from './components/PixelationControls'
-import BackgroundRemovalControls from './components/BackgroundRemovalControls'
 import ImagePreview from './components/ImagePreview'
+import { pixelateImage } from './utils/pixelation-client'
 import './App.css'
 
 function App() {
   const [uploadedFile, setUploadedFile] = useState(null)
   const [processedImage, setProcessedImage] = useState(null)
+  const [processedImageUrl, setProcessedImageUrl] = useState(null)
   const [processing, setProcessing] = useState(false)
+  const [processingProgress, setProcessingProgress] = useState(0)
   const [error, setError] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   const [darkMode, setDarkMode] = useState(false)
 
   // Pixelation settings - slider from 0 (max pixelation) to 100 (no pixelation)
-  const [pixelateEnabled, setPixelateEnabled] = useState(true)
+  const [liveUpdate, setLiveUpdate] = useState(true)
   const [pixelationLevel, setPixelationLevel] = useState(50) // Default center (50%)
   const [pixelationMethod, setPixelationMethod] = useState('average')
 
-  // Background removal settings
-  const [removeBgEnabled, setRemoveBgEnabled] = useState(false)
-  const [bgThreshold, setBgThreshold] = useState(50)
-
-  // Processing order
-  const [processOrder, setProcessOrder] = useState('pixelate_first')
+  const handleLiveUpdateChange = (value) => {
+    setLiveUpdate(value)
+  }
 
   const handleFileUpload = async (file) => {
     setUploadedFile(file)
     setProcessedImage(null)
+    setProcessedImageUrl(null)
     setError(null)
     
     // Get image dimensions for pixelation calculation
@@ -39,16 +39,16 @@ function App() {
   }
 
   // Calculate target dimensions based on pixelation level
-  // 0 = max pixelation (10x10), 100 = no pixelation (original size)
+  // 0 = max pixelation (1x1), 100 = no pixelation (original size)
   const calculateTargetDimensions = () => {
     if (!imageDimensions.width || !imageDimensions.height) {
       return { width: 100, height: 100 }
     }
     
-    // At 0%: 10x10 (max pixelation)
+    // At 0%: 1x1 (maximum pixelation - largest possible pixels)
     // At 100%: original dimensions (no pixelation)
     // At 50%: moderate pixelation
-    const minSize = 10
+    const minSize = 1
     const maxWidth = imageDimensions.width
     const maxHeight = imageDimensions.height
     
@@ -61,75 +61,89 @@ function App() {
     return { width: targetWidth, height: targetHeight }
   }
 
-  const handleProcess = async () => {
+  const handleProcess = useCallback(async () => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
     }
 
     setProcessing(true)
+    setProcessingProgress(0)
     setError(null)
 
     try {
-      // First, upload the file
-      const formData = new FormData()
-      formData.append('file', uploadedFile)
-
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json()
-        throw new Error(errorData.error || 'Upload failed')
-      }
-
-      const uploadData = await uploadResponse.json()
-      
-      // Update image dimensions from server response
-      if (uploadData.width && uploadData.height) {
-        setImageDimensions({ width: uploadData.width, height: uploadData.height })
-      }
-
       // Calculate target dimensions based on pixelation level
       const { width: targetWidth, height: targetHeight } = calculateTargetDimensions()
 
-      // Then process the image
-      const processResponse = await fetch('/api/process', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: uploadData.filename,
-          pixelate_enabled: pixelateEnabled,
-          remove_bg_enabled: removeBgEnabled,
-          target_width: targetWidth,
-          target_height: targetHeight,
-          pixelation_method: pixelationMethod,
-          bg_threshold: bgThreshold,
-          process_order: processOrder,
-        }),
-      })
+      // Process image client-side using Canvas API
+      const blob = await pixelateImage(
+        uploadedFile,
+        targetWidth,
+        targetHeight,
+        pixelationMethod,
+        (progress) => {
+          setProcessingProgress(progress)
+        }
+      )
 
-      if (!processResponse.ok) {
-        const errorData = await processResponse.json()
-        throw new Error(errorData.error || 'Processing failed')
+      // Create object URL from blob
+      const url = URL.createObjectURL(blob)
+      
+      // Clean up previous URL if exists
+      if (processedImageUrl) {
+        URL.revokeObjectURL(processedImageUrl)
       }
-
-      const processData = await processResponse.json()
-      setProcessedImage(processData.processed_filename)
+      
+      setProcessedImageUrl(url)
+      setProcessedImage('processed') // Just a flag, we use the URL
     } catch (err) {
-      setError(err.message)
+      setError(err.message || 'Processing failed')
     } finally {
       setProcessing(false)
+      setProcessingProgress(0)
     }
-  }
+  }, [uploadedFile, pixelationLevel, pixelationMethod, imageDimensions, processedImageUrl])
+
+  // Debounced auto-process for live update
+  const debounceTimerRef = useRef(null)
+  
+  useEffect(() => {
+    if (liveUpdate && uploadedFile && !processing) {
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      
+      // Set new timer
+      debounceTimerRef.current = setTimeout(() => {
+        handleProcess()
+      }, 300) // 300ms debounce
+      
+      return () => {
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current)
+        }
+      }
+    }
+  }, [liveUpdate, pixelationLevel, pixelationMethod, uploadedFile, handleProcess, processing])
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (processedImageUrl) {
+        URL.revokeObjectURL(processedImageUrl)
+      }
+    }
+  }, [processedImageUrl])
 
   const handleDownload = () => {
-    if (processedImage) {
-      window.open(`/api/download/${processedImage}`, '_blank')
+    if (processedImageUrl) {
+      const link = document.createElement('a')
+      link.href = processedImageUrl
+      link.download = `pixelated-${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     }
   }
 
@@ -146,10 +160,7 @@ function App() {
     <div className={`app ${darkMode ? 'dark-mode' : ''}`}>
       <header className="app-header">
         <div className="header-content">
-          <div>
-            <h1>PXL8</h1>
-            <p>Image Pixelation & Background Removal Tool</p>
-          </div>
+          <h1>PXL8</h1>
           <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
             {darkMode ? '☀️' : '🌙'}
           </button>
@@ -157,76 +168,46 @@ function App() {
       </header>
 
       <div className="app-content">
-        <div className="upload-section">
-          <ImageUpload onFileUpload={handleFileUpload} />
-          {error && <div className="error-message">{error}</div>}
-        </div>
-
-        {uploadedFile && (
+        {!uploadedFile ? (
+          <div className="upload-section">
+            <ImageUpload onFileUpload={handleFileUpload} />
+            {error && <div className="error-message">{error}</div>}
+          </div>
+        ) : (
           <>
-            <div className="controls-section">
-              <div className="controls-grid">
-                <PixelationControls
-                  enabled={pixelateEnabled}
-                  onToggle={setPixelateEnabled}
-                  pixelationLevel={pixelationLevel}
-                  onPixelationLevelChange={setPixelationLevel}
-                  method={pixelationMethod}
-                  onMethodChange={setPixelationMethod}
-                  imageDimensions={imageDimensions}
-                />
-
-                <BackgroundRemovalControls
-                  enabled={removeBgEnabled}
-                  onToggle={setRemoveBgEnabled}
-                  threshold={bgThreshold}
-                  onThresholdChange={setBgThreshold}
-                />
-
-                <div className="control-group">
-                  <h3>Processing Order</h3>
-                  <div className="radio-group">
-                    <label>
-                      <input
-                        type="radio"
-                        value="pixelate_first"
-                        checked={processOrder === 'pixelate_first'}
-                        onChange={(e) => setProcessOrder(e.target.value)}
-                      />
-                      Pixelate → Remove Background
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        value="bg_first"
-                        checked={processOrder === 'bg_first'}
-                        onChange={(e) => setProcessOrder(e.target.value)}
-                      />
-                      Remove Background → Pixelate
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                className="process-button"
-                onClick={handleProcess}
-                disabled={processing || (!pixelateEnabled && !removeBgEnabled)}
-              >
-                {processing ? 'Processing...' : 'Process Image'}
-              </button>
-            </div>
-
-            <div className="preview-section">
+            <div className="image-display-section">
               <ImagePreview
                 originalFile={uploadedFile}
-                processedFilename={processedImage}
+                processedImageUrl={processedImageUrl}
+              />
+              {error && <div className="error-message">{error}</div>}
+            </div>
+
+            <div className="controls-section">
+              <PixelationControls
+                liveUpdate={liveUpdate}
+                onLiveUpdateChange={handleLiveUpdateChange}
+                pixelationLevel={pixelationLevel}
+                onPixelationLevelChange={setPixelationLevel}
+                method={pixelationMethod}
+                onMethodChange={setPixelationMethod}
+                imageDimensions={imageDimensions}
                 onDownload={handleDownload}
+                onProcess={handleProcess}
+                processedImageUrl={processedImageUrl}
               />
             </div>
           </>
         )}
       </div>
+
+      <footer className="app-footer">
+        <a href="#" className="footer-link">Background Removal Tool</a>
+        <span className="footer-separator">•</span>
+        <a href="#" className="footer-link">Commercial Use License</a>
+        <span className="footer-separator">•</span>
+        <a href="https://github.com/j031nich0145/j031nich0145/" target="_blank" rel="noopener noreferrer" className="footer-link">Buy Us Coffee</a>
+      </footer>
     </div>
   )
 }

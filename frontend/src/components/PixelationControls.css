@@ -1,6 +1,6 @@
 .pixelation-controls {
   background: #ffffff;
-  padding: 20px;
+  padding: 15px 20px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   transition: background-color 0.3s ease, border-color 0.3s ease;
@@ -11,11 +11,87 @@
   border-color: #404040;
 }
 
+.controls-header {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  transition: border-color 0.3s ease;
+}
+
+:global(.dark-mode) .controls-header {
+  border-bottom-color: #404040;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.download-button {
+  padding: 8px 16px;
+  background: #4dd0e1;
+  color: #006064;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+:global(.dark-mode) .download-button {
+  background: #1976d2;
+  color: #e3f2fd;
+}
+
+.download-button:hover {
+  background: #26c6da;
+}
+
+:global(.dark-mode) .download-button:hover {
+  background: #1565c0;
+}
+
+.process-button-image {
+  padding: 8px 16px;
+  background: #4dd0e1;
+  color: #006064;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+:global(.dark-mode) .process-button-image {
+  background: #1976d2;
+  color: #e3f2fd;
+}
+
+.process-button-image:hover {
+  background: #26c6da;
+}
+
+:global(.dark-mode) .process-button-image:hover {
+  background: #1565c0;
+}
+
 .toggle-label {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 15px;
   font-weight: 600;
   color: #424242;
   cursor: pointer;
@@ -26,25 +102,52 @@
   color: #e0e0e0;
 }
 
-.toggle-label input[type="checkbox"] {
+.toggle-label input[type="checkbox"].toggle-switch {
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+  appearance: none;
+  background: #ccc;
+  border-radius: 12px;
+  position: relative;
+  transition: background 0.3s ease;
+}
+
+.toggle-label input[type="checkbox"].toggle-switch:checked {
+  background: #4dd0e1;
+}
+
+:global(.dark-mode) .toggle-label input[type="checkbox"].toggle-switch {
+  background: #555;
+}
+
+:global(.dark-mode) .toggle-label input[type="checkbox"].toggle-switch:checked {
+  background: #1976d2;
+}
+
+.toggle-label input[type="checkbox"].toggle-switch::before {
+  content: '';
+  position: absolute;
   width: 20px;
   height: 20px;
-  cursor: pointer;
+  border-radius: 50%;
+  background: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s ease;
+}
+
+.toggle-label input[type="checkbox"].toggle-switch:checked::before {
+  transform: translateX(20px);
 }
 
 .controls-content {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
+  margin-top: 10px;
   transition: border-color 0.3s ease;
 }
 
-:global(.dark-mode) .controls-content {
-  border-top-color: #404040;
-}
-
 .input-group {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .input-group label {
@@ -92,8 +195,9 @@
 .slider-container {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+  gap: 15px;
+  margin: 20px 0;
+  padding: 10px 0;
 }
 
 .slider-label {
@@ -109,8 +213,8 @@
 
 .pixelation-slider {
   flex: 1;
-  height: 8px;
-  border-radius: 4px;
+  height: 16px;
+  border-radius: 8px;
   background: #e0e0e0;
   outline: none;
   -webkit-appearance: none;
@@ -124,30 +228,42 @@
 .pixelation-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #4dd0e1;
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 :global(.dark-mode) .pixelation-slider::-webkit-slider-thumb {
   background: #1976d2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.pixelation-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
 }
 
 .pixelation-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #4dd0e1;
   cursor: pointer;
   border: none;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 :global(.dark-mode) .pixelation-slider::-moz-range-thumb {
   background: #1976d2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.pixelation-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
 }
 
 .slider-labels-bottom {
