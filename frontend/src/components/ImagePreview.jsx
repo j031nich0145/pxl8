@@ -3,7 +3,8 @@ import './ImagePreview.css'
 
 function ImagePreview({ 
   originalFile, 
-  processedImageUrl
+  processedImageUrl,
+  onImageChange
 }) {
   const [originalUrl, setOriginalUrl] = useState(null)
 
@@ -21,8 +22,17 @@ function ImagePreview({
         <div className="preview-item">
           <h3>Original</h3>
           {originalUrl && (
-            <div className="image-container">
+            <div className="image-container original-image-container">
               <img src={originalUrl} alt="Original" />
+              <div className="image-overlay">
+                <button 
+                  className="change-image-button" 
+                  onClick={onImageChange}
+                  title="Change image"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           )}
         </div>

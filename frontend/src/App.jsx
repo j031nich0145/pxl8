@@ -15,9 +15,9 @@ function App() {
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   const [darkMode, setDarkMode] = useState(false)
 
-  // Pixelation settings - slider from 0 (max pixelation) to 100 (no pixelation)
+  // Pixelation settings - pixelation level from 1 (max pixelation) to 10 (minimal pixelation)
   const [liveUpdate, setLiveUpdate] = useState(true)
-  const [pixelationLevel, setPixelationLevel] = useState(50) // Default center (50%)
+  const [pixelationLevel, setPixelationLevel] = useState(5.5) // Default center (5.5% = middle of 1-10%)
   const [pixelationMethod, setPixelationMethod] = useState('average')
 
   const handleLiveUpdateChange = (value) => {
@@ -38,27 +38,48 @@ function App() {
     img.src = URL.createObjectURL(file)
   }
 
-  // Calculate target dimensions based on pixelation level
-  // 0 = max pixelation (1x1), 100 = no pixelation (original size)
+  const handleImageChange = () => {
+    // Clean up object URLs
+    if (processedImageUrl) {
+      URL.revokeObjectURL(processedImageUrl)
+    }
+    setUploadedFile(null)
+    setProcessedImage(null)
+    setProcessedImageUrl(null)
+    setImageDimensions({ width: 0, height: 0 })
+    setError(null)
+  }
+
+  // Calculate pixel size from pixelation level
+  // Maps to pixel block size (1x1 to 100x100) using exponential function
+  // Note: level can be slightly above 10 to support direct pixel size inputs above ~50
+  const calculatePixelSize = (level) => {
+    // Use exponential mapping: pixelSize = 1 + ((level - 1) / 9)^2 * 99
+    // This gives better granularity at lower levels
+    // Clamp level to reasonable range (allow slightly above 10 for precision)
+    const clampedLevel = Math.max(1.0, Math.min(10.1, level))
+    const normalizedLevel = (clampedLevel - 1) / 9
+    const pixelSize = Math.round(1 + Math.pow(normalizedLevel, 2) * 99)
+    return Math.max(1, Math.min(100, pixelSize)) // Clamp between 1 and 100
+  }
+
+  // Calculate target dimensions from pixel size
   const calculateTargetDimensions = () => {
     if (!imageDimensions.width || !imageDimensions.height) {
-      return { width: 100, height: 100 }
+      return { width: 100, height: 100, pixelSize: 1, multiplier: 1.0 }
     }
     
-    // At 0%: 1x1 (maximum pixelation - largest possible pixels)
-    // At 100%: original dimensions (no pixelation)
-    // At 50%: moderate pixelation
-    const minSize = 1
-    const maxWidth = imageDimensions.width
-    const maxHeight = imageDimensions.height
+    const pixelSize = calculatePixelSize(pixelationLevel)
+    const targetWidth = Math.max(1, Math.floor(imageDimensions.width / pixelSize))
+    const targetHeight = Math.max(1, Math.floor(imageDimensions.height / pixelSize))
     
-    // Interpolate between min and max based on slider value
-    // Reverse the scale: 0 = max pixelation, 100 = no pixelation
-    const ratio = pixelationLevel / 100
-    const targetWidth = Math.round(minSize + (maxWidth - minSize) * ratio)
-    const targetHeight = Math.round(minSize + (maxHeight - minSize) * ratio)
+    // Calculate multiplier to make pixelation more visible/sensitive
+    // Multiplier increases with pixelation level to make effect more visible
+    // For now, use a constant multiplier that makes pixelation more visible
+    // This can be adjusted based on user feedback
+    const multiplier = 1.0 + (pixelSize / 100) * 2.0 // Multiplier from 1.0 to 3.0 based on pixel size
     
-    return { width: targetWidth, height: targetHeight }
+    return { width: targetWidth, height: targetHeight, pixelSize, multiplier }
   }
 
   const handleProcess = useCallback(async () => {
@@ -72,8 +93,8 @@ function App() {
     setError(null)
 
     try {
-      // Calculate target dimensions based on pixelation level
-      const { width: targetWidth, height: targetHeight } = calculateTargetDimensions()
+      // Calculate target dimensions and multiplier
+      const { width: targetWidth, height: targetHeight, multiplier } = calculateTargetDimensions()
 
       // Process image client-side using Canvas API
       const blob = await pixelateImage(
@@ -81,6 +102,7 @@ function App() {
         targetWidth,
         targetHeight,
         pixelationMethod,
+        multiplier,
         (progress) => {
           setProcessingProgress(progress)
         }
@@ -179,6 +201,7 @@ function App() {
               <ImagePreview
                 originalFile={uploadedFile}
                 processedImageUrl={processedImageUrl}
+                onImageChange={handleImageChange}
               />
               {error && <div className="error-message">{error}</div>}
             </div>
@@ -203,6 +226,8 @@ function App() {
 
       <footer className="app-footer">
         <a href="#" className="footer-link">Background Removal Tool</a>
+        <span className="footer-separator">•</span>
+        <a href="#" className="footer-link">batch pxl8</a>
         <span className="footer-separator">•</span>
         <a href="#" className="footer-link">Commercial Use License</a>
         <span className="footer-separator">•</span>

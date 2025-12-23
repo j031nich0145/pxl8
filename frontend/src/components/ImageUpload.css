@@ -8,9 +8,10 @@
   cursor: pointer;
 }
 
+:global(body.dark-mode) .upload-area,
 :global(.dark-mode) .upload-area {
   border-color: #546e7a;
-  background: #2d2d2d;
+  background: #2d2d2d !important;
 }
 
 .upload-area:hover,

@@ -6,8 +6,8 @@
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
-:global(.dark-mode) .pixelation-controls {
-  background: #2d2d2d;
+body.dark-mode .pixelation-controls {
+  background: #2d2d2d !important;
   border-color: #404040;
 }
 
@@ -18,7 +18,7 @@
   transition: border-color 0.3s ease;
 }
 
-:global(.dark-mode) .controls-header {
+body.dark-mode .controls-header {
   border-bottom-color: #404040;
 }
 
@@ -49,7 +49,7 @@
   white-space: nowrap;
 }
 
-:global(.dark-mode) .download-button {
+body.dark-mode .download-button {
   background: #1976d2;
   color: #e3f2fd;
 }
@@ -58,7 +58,7 @@
   background: #26c6da;
 }
 
-:global(.dark-mode) .download-button:hover {
+body.dark-mode .download-button:hover {
   background: #1565c0;
 }
 
@@ -75,7 +75,7 @@
   white-space: nowrap;
 }
 
-:global(.dark-mode) .process-button-image {
+body.dark-mode .process-button-image {
   background: #1976d2;
   color: #e3f2fd;
 }
@@ -84,7 +84,7 @@
   background: #26c6da;
 }
 
-:global(.dark-mode) .process-button-image:hover {
+body.dark-mode .process-button-image:hover {
   background: #1565c0;
 }
 
@@ -98,7 +98,7 @@
   transition: color 0.3s ease;
 }
 
-:global(.dark-mode) .toggle-label {
+body.dark-mode .toggle-label {
   color: #e0e0e0;
 }
 
@@ -117,11 +117,11 @@
   background: #4dd0e1;
 }
 
-:global(.dark-mode) .toggle-label input[type="checkbox"].toggle-switch {
+body.dark-mode .toggle-label input[type="checkbox"].toggle-switch {
   background: #555;
 }
 
-:global(.dark-mode) .toggle-label input[type="checkbox"].toggle-switch:checked {
+body.dark-mode .toggle-label input[type="checkbox"].toggle-switch:checked {
   background: #1976d2;
 }
 
@@ -134,7 +134,11 @@
   background: white;
   top: 2px;
   left: 2px;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+body.dark-mode .toggle-label input[type="checkbox"].toggle-switch::before {
+  background: #b0b0b0;
 }
 
 .toggle-label input[type="checkbox"].toggle-switch:checked::before {
@@ -158,7 +162,7 @@
   transition: color 0.3s ease;
 }
 
-:global(.dark-mode) .input-group label {
+body.dark-mode .input-group label {
   color: #b0b0b0;
 }
 
@@ -174,9 +178,9 @@
   transition: border-color 0.2s, background-color 0.3s ease, color 0.3s ease;
 }
 
-:global(.dark-mode) .input-group input[type="number"],
-:global(.dark-mode) .input-group select {
-  background: #1a1a1a;
+body.dark-mode .input-group input[type="number"],
+body.dark-mode .input-group select {
+  background: #2d2d2d;
   border-color: #404040;
   color: #e0e0e0;
 }
@@ -187,9 +191,59 @@
   border-color: #4dd0e1;
 }
 
-:global(.dark-mode) .input-group input[type="number"]:focus,
-:global(.dark-mode) .input-group select:focus {
+body.dark-mode .input-group input[type="number"]:focus,
+body.dark-mode .input-group select:focus {
   border-color: #1976d2;
+}
+
+.zoom-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.zoom-button {
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #616161;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+body.dark-mode .zoom-button {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #b0b0b0;
+}
+
+.zoom-button:hover {
+  background: #f5f5f5;
+  border-color: #4dd0e1;
+  color: #006064;
+}
+
+body.dark-mode .zoom-button:hover {
+  background: #2d2d2d;
+  border-color: #1976d2;
+  color: #e3f2fd;
+}
+
+.zoom-button.active {
+  background: #4dd0e1;
+  border-color: #4dd0e1;
+  color: #006064;
+  font-weight: 600;
+}
+
+body.dark-mode .zoom-button.active {
+  background: #1976d2;
+  border-color: #1976d2;
+  color: #e3f2fd;
 }
 
 .slider-container {
@@ -207,7 +261,7 @@
   transition: color 0.3s ease;
 }
 
-:global(.dark-mode) .slider-label {
+body.dark-mode .slider-label {
   color: #9e9e9e;
 }
 
@@ -219,10 +273,59 @@
   outline: none;
   -webkit-appearance: none;
   transition: background 0.3s ease;
+  /* Ruler pattern: marks for 1-10% range, big marks at 1%, 2.5%, 5%, 7.5%, 10% */
+  /* Position calculation: position = ((pixelationLevel - 1) / 9) * 100% */
+  /* Very subtle colors for small marks, slightly more visible for big marks */
+  background-image: 
+    /* Big marks at 1%, 2.5%, 5%, 7.5%, 10% */
+    linear-gradient(to right, transparent 0%, transparent calc(0% - 0.3%), rgba(158, 158, 158, 0.15) 0%, rgba(158, 158, 158, 0.15) calc(0% + 0.3%), transparent calc(0% + 0.3%)),
+    linear-gradient(to right, transparent calc(16.67% - 0.4%), rgba(158, 158, 158, 0.18) 16.67%, rgba(158, 158, 158, 0.18) calc(16.67% + 0.4%), transparent calc(16.67% + 0.4%)),
+    linear-gradient(to right, transparent calc(44.44% - 0.4%), rgba(158, 158, 158, 0.18) 44.44%, rgba(158, 158, 158, 0.18) calc(44.44% + 0.4%), transparent calc(44.44% + 0.4%)),
+    linear-gradient(to right, transparent calc(72.22% - 0.4%), rgba(158, 158, 158, 0.18) 72.22%, rgba(158, 158, 158, 0.18) calc(72.22% + 0.4%), transparent calc(72.22% + 0.4%)),
+    linear-gradient(to right, transparent calc(100% - 0.3%), rgba(158, 158, 158, 0.15) 100%, rgba(158, 158, 158, 0.15) 100%),
+    /* Small marks at 1.5%, 2%, 3%, 3.5%, 4%, 4.5%, 6%, 6.5%, 7%, 8%, 8.5%, 9%, 9.5% */
+    linear-gradient(to right, transparent calc(5.56% - 0.15%), rgba(158, 158, 158, 0.08) 5.56%, rgba(158, 158, 158, 0.08) calc(5.56% + 0.15%), transparent calc(5.56% + 0.15%)),
+    linear-gradient(to right, transparent calc(11.11% - 0.15%), rgba(158, 158, 158, 0.08) 11.11%, rgba(158, 158, 158, 0.08) calc(11.11% + 0.15%), transparent calc(11.11% + 0.15%)),
+    linear-gradient(to right, transparent calc(22.22% - 0.15%), rgba(158, 158, 158, 0.08) 22.22%, rgba(158, 158, 158, 0.08) calc(22.22% + 0.15%), transparent calc(22.22% + 0.15%)),
+    linear-gradient(to right, transparent calc(27.78% - 0.15%), rgba(158, 158, 158, 0.08) 27.78%, rgba(158, 158, 158, 0.08) calc(27.78% + 0.15%), transparent calc(27.78% + 0.15%)),
+    linear-gradient(to right, transparent calc(33.33% - 0.15%), rgba(158, 158, 158, 0.08) 33.33%, rgba(158, 158, 158, 0.08) calc(33.33% + 0.15%), transparent calc(33.33% + 0.15%)),
+    linear-gradient(to right, transparent calc(38.89% - 0.15%), rgba(158, 158, 158, 0.08) 38.89%, rgba(158, 158, 158, 0.08) calc(38.89% + 0.15%), transparent calc(38.89% + 0.15%)),
+    linear-gradient(to right, transparent calc(55.56% - 0.15%), rgba(158, 158, 158, 0.08) 55.56%, rgba(158, 158, 158, 0.08) calc(55.56% + 0.15%), transparent calc(55.56% + 0.15%)),
+    linear-gradient(to right, transparent calc(61.11% - 0.15%), rgba(158, 158, 158, 0.08) 61.11%, rgba(158, 158, 158, 0.08) calc(61.11% + 0.15%), transparent calc(61.11% + 0.15%)),
+    linear-gradient(to right, transparent calc(66.67% - 0.15%), rgba(158, 158, 158, 0.08) 66.67%, rgba(158, 158, 158, 0.08) calc(66.67% + 0.15%), transparent calc(66.67% + 0.15%)),
+    linear-gradient(to right, transparent calc(77.78% - 0.15%), rgba(158, 158, 158, 0.08) 77.78%, rgba(158, 158, 158, 0.08) calc(77.78% + 0.15%), transparent calc(77.78% + 0.15%)),
+    linear-gradient(to right, transparent calc(83.33% - 0.15%), rgba(158, 158, 158, 0.08) 83.33%, rgba(158, 158, 158, 0.08) calc(83.33% + 0.15%), transparent calc(83.33% + 0.15%)),
+    linear-gradient(to right, transparent calc(88.89% - 0.15%), rgba(158, 158, 158, 0.08) 88.89%, rgba(158, 158, 158, 0.08) calc(88.89% + 0.15%), transparent calc(88.89% + 0.15%)),
+    linear-gradient(to right, transparent calc(94.44% - 0.15%), rgba(158, 158, 158, 0.08) 94.44%, rgba(158, 158, 158, 0.08) calc(94.44% + 0.15%), transparent calc(94.44% + 0.15%));
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
 }
 
-:global(.dark-mode) .pixelation-slider {
+body.dark-mode .pixelation-slider {
   background: #404040;
+  background-image: 
+    /* Big marks at 1%, 2.5%, 5%, 7.5%, 10% */
+    linear-gradient(to right, transparent 0%, transparent calc(0% - 0.3%), rgba(117, 117, 117, 0.12) 0%, rgba(117, 117, 117, 0.12) calc(0% + 0.3%), transparent calc(0% + 0.3%)),
+    linear-gradient(to right, transparent calc(16.67% - 0.4%), rgba(117, 117, 117, 0.15) 16.67%, rgba(117, 117, 117, 0.15) calc(16.67% + 0.4%), transparent calc(16.67% + 0.4%)),
+    linear-gradient(to right, transparent calc(44.44% - 0.4%), rgba(117, 117, 117, 0.15) 44.44%, rgba(117, 117, 117, 0.15) calc(44.44% + 0.4%), transparent calc(44.44% + 0.4%)),
+    linear-gradient(to right, transparent calc(72.22% - 0.4%), rgba(117, 117, 117, 0.15) 72.22%, rgba(117, 117, 117, 0.15) calc(72.22% + 0.4%), transparent calc(72.22% + 0.4%)),
+    linear-gradient(to right, transparent calc(100% - 0.3%), rgba(117, 117, 117, 0.12) 100%, rgba(117, 117, 117, 0.12) 100%),
+    /* Small marks at 1.5%, 2%, 3%, 3.5%, 4%, 4.5%, 6%, 6.5%, 7%, 8%, 8.5%, 9%, 9.5% */
+    linear-gradient(to right, transparent calc(5.56% - 0.15%), rgba(117, 117, 117, 0.06) 5.56%, rgba(117, 117, 117, 0.06) calc(5.56% + 0.15%), transparent calc(5.56% + 0.15%)),
+    linear-gradient(to right, transparent calc(11.11% - 0.15%), rgba(117, 117, 117, 0.06) 11.11%, rgba(117, 117, 117, 0.06) calc(11.11% + 0.15%), transparent calc(11.11% + 0.15%)),
+    linear-gradient(to right, transparent calc(22.22% - 0.15%), rgba(117, 117, 117, 0.06) 22.22%, rgba(117, 117, 117, 0.06) calc(22.22% + 0.15%), transparent calc(22.22% + 0.15%)),
+    linear-gradient(to right, transparent calc(27.78% - 0.15%), rgba(117, 117, 117, 0.06) 27.78%, rgba(117, 117, 117, 0.06) calc(27.78% + 0.15%), transparent calc(27.78% + 0.15%)),
+    linear-gradient(to right, transparent calc(33.33% - 0.15%), rgba(117, 117, 117, 0.06) 33.33%, rgba(117, 117, 117, 0.06) calc(33.33% + 0.15%), transparent calc(33.33% + 0.15%)),
+    linear-gradient(to right, transparent calc(38.89% - 0.15%), rgba(117, 117, 117, 0.06) 38.89%, rgba(117, 117, 117, 0.06) calc(38.89% + 0.15%), transparent calc(38.89% + 0.15%)),
+    linear-gradient(to right, transparent calc(55.56% - 0.15%), rgba(117, 117, 117, 0.06) 55.56%, rgba(117, 117, 117, 0.06) calc(55.56% + 0.15%), transparent calc(55.56% + 0.15%)),
+    linear-gradient(to right, transparent calc(61.11% - 0.15%), rgba(117, 117, 117, 0.06) 61.11%, rgba(117, 117, 117, 0.06) calc(61.11% + 0.15%), transparent calc(61.11% + 0.15%)),
+    linear-gradient(to right, transparent calc(66.67% - 0.15%), rgba(117, 117, 117, 0.06) 66.67%, rgba(117, 117, 117, 0.06) calc(66.67% + 0.15%), transparent calc(66.67% + 0.15%)),
+    linear-gradient(to right, transparent calc(77.78% - 0.15%), rgba(117, 117, 117, 0.06) 77.78%, rgba(117, 117, 117, 0.06) calc(77.78% + 0.15%), transparent calc(77.78% + 0.15%)),
+    linear-gradient(to right, transparent calc(83.33% - 0.15%), rgba(117, 117, 117, 0.06) 83.33%, rgba(117, 117, 117, 0.06) calc(83.33% + 0.15%), transparent calc(83.33% + 0.15%)),
+    linear-gradient(to right, transparent calc(88.89% - 0.15%), rgba(117, 117, 117, 0.06) 88.89%, rgba(117, 117, 117, 0.06) calc(88.89% + 0.15%), transparent calc(88.89% + 0.15%)),
+    linear-gradient(to right, transparent calc(94.44% - 0.15%), rgba(117, 117, 117, 0.06) 94.44%, rgba(117, 117, 117, 0.06) calc(94.44% + 0.15%), transparent calc(94.44% + 0.15%));
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
 }
 
 .pixelation-slider::-webkit-slider-thumb {
@@ -237,7 +340,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-:global(.dark-mode) .pixelation-slider::-webkit-slider-thumb {
+body.dark-mode .pixelation-slider::-webkit-slider-thumb {
   background: #1976d2;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
@@ -257,7 +360,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-:global(.dark-mode) .pixelation-slider::-moz-range-thumb {
+body.dark-mode .pixelation-slider::-moz-range-thumb {
   background: #1976d2;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
@@ -275,7 +378,7 @@
   transition: color 0.3s ease;
 }
 
-:global(.dark-mode) .slider-labels-bottom {
+body.dark-mode .slider-labels-bottom {
   color: #757575;
 }
 
@@ -288,12 +391,145 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-:global(.dark-mode) .info-text {
+body.dark-mode .info-text {
   background: #1e3a5f;
   color: #81d4fa;
 }
 
 .info-text small {
   font-size: 0.85rem;
+}
+
+.precision-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #616161;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+body.dark-mode .precision-button {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #b0b0b0;
+}
+
+.precision-button:hover {
+  background: #f5f5f5;
+  border-color: #4dd0e1;
+  color: #006064;
+  transform: scale(1.05);
+}
+
+body.dark-mode .precision-button:hover {
+  background: #2d2d2d;
+  border-color: #1976d2;
+  color: #e3f2fd;
+}
+
+.precision-button:active {
+  transform: scale(0.95);
+}
+
+.pixel-size-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.pixel-size-input {
+  width: 80px;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: #ffffff;
+  color: #212121;
+  transition: border-color 0.2s, background-color 0.3s ease, color 0.3s ease;
+  text-align: center;
+}
+
+body.dark-mode .pixel-size-input {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+.pixel-size-input:focus {
+  outline: none;
+  border-color: #4dd0e1;
+}
+
+body.dark-mode .pixel-size-input:focus {
+  border-color: #1976d2;
+}
+
+.pixel-size-label {
+  font-size: 0.9rem;
+  color: #616161;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .pixel-size-label {
+  color: #b0b0b0;
+}
+
+.px2-input-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+
+.px2-input {
+  width: 70px;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #212121;
+  transition: border-color 0.2s, background-color 0.3s ease, color 0.3s ease;
+  text-align: center;
+}
+
+body.dark-mode .px2-input {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+.px2-input:focus {
+  outline: none;
+  border-color: #4dd0e1;
+}
+
+body.dark-mode .px2-input:focus {
+  border-color: #1976d2;
+}
+
+.px2-label {
+  font-size: 1.1rem;
+  color: #616161;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .px2-label {
+  color: #b0b0b0;
 }
 

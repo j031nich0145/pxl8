@@ -6,13 +6,14 @@
 /**
  * Pixelate an image using Canvas API
  * @param {File|string} imageSource - Image file or data URL
- * @param {number} targetWidth - Target width in pixels
- * @param {number} targetHeight - Target height in pixels
+ * @param {number} targetWidth - Target width in pixels for downscaled image
+ * @param {number} targetHeight - Target height in pixels for downscaled image
  * @param {string} method - 'nearest' or 'average'
+ * @param {number} multiplier - Multiplier for output size (default: 1.0)
  * @param {Function} onProgress - Progress callback (0-100)
  * @returns {Promise<Blob>} - Processed image as blob
  */
-export async function pixelateImage(imageSource, targetWidth, targetHeight, method = 'average', onProgress) {
+export async function pixelateImage(imageSource, targetWidth, targetHeight, method = 'average', multiplier = 1.0, onProgress) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     
@@ -43,13 +44,13 @@ export async function pixelateImage(imageSource, targetWidth, targetHeight, meth
           
           if (onProgress) onProgress(60)
           
-          // Scale back up to original size
+          // Scale back up to original size with multiplier
           const outputCanvas = document.createElement('canvas')
-          outputCanvas.width = origWidth
-          outputCanvas.height = origHeight
+          outputCanvas.width = origWidth * multiplier
+          outputCanvas.height = origHeight * multiplier
           const outputCtx = outputCanvas.getContext('2d')
           outputCtx.imageSmoothingEnabled = false
-          outputCtx.drawImage(canvas, 0, 0, origWidth, origHeight)
+          outputCtx.drawImage(canvas, 0, 0, origWidth * multiplier, origHeight * multiplier)
           
           if (onProgress) onProgress(90)
           
@@ -67,7 +68,7 @@ export async function pixelateImage(imageSource, targetWidth, targetHeight, meth
           canvas.width = finalWidth
           canvas.height = finalHeight
           
-          // Calculate block sizes
+          // Calculate block sizes (original approach)
           const blockWidth = origWidth / finalWidth
           const blockHeight = origHeight / finalHeight
           
@@ -90,7 +91,7 @@ export async function pixelateImage(imageSource, targetWidth, targetHeight, meth
           // Process each target pixel
           for (let y = 0; y < finalHeight; y++) {
             for (let x = 0; x < finalWidth; x++) {
-              // Calculate block boundaries
+              // Calculate block boundaries (original approach)
               const xStart = Math.floor(x * blockWidth)
               const xEnd = Math.min(Math.floor((x + 1) * blockWidth), origWidth)
               const yStart = Math.floor(y * blockHeight)
@@ -130,13 +131,13 @@ export async function pixelateImage(imageSource, targetWidth, targetHeight, meth
           
           if (onProgress) onProgress(80)
           
-          // Scale back up to original size
+          // Scale back up to original size with multiplier
           const outputCanvas = document.createElement('canvas')
-          outputCanvas.width = origWidth
-          outputCanvas.height = origHeight
+          outputCanvas.width = origWidth * multiplier
+          outputCanvas.height = origHeight * multiplier
           const outputCtx = outputCanvas.getContext('2d')
           outputCtx.imageSmoothingEnabled = false
-          outputCtx.drawImage(canvas, 0, 0, origWidth, origHeight)
+          outputCtx.drawImage(canvas, 0, 0, origWidth * multiplier, origHeight * multiplier)
           
           if (onProgress) onProgress(95)
           

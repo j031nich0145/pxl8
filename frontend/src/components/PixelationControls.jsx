@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import './PixelationControls.css'
 
 function PixelationControls({
@@ -13,21 +13,191 @@ function PixelationControls({
   onProcess,
   processedImageUrl,
 }) {
-  // Calculate target dimensions for display
+  // Calculate pixel size from pixelation level
+  // Maps to pixel block size (1x1 to 100x100) using exponential function
+  // Note: level can be slightly above 10 to support direct pixel size inputs above ~50
+  const calculatePixelSize = (level) => {
+    // Use exponential mapping: pixelSize = 1 + ((level - 1) / 9)^2 * 99
+    // This gives better granularity at lower levels
+    // Clamp level to reasonable range (allow slightly above 10 for precision)
+    const clampedLevel = Math.max(1.0, Math.min(10.1, level))
+    const normalizedLevel = (clampedLevel - 1) / 9
+    const pixelSize = Math.round(1 + Math.pow(normalizedLevel, 2) * 99)
+    return Math.max(1, Math.min(100, pixelSize)) // Clamp between 1 and 100
+  }
+
+  // Calculate pixel size from pixelation level
+  const pixelSize = calculatePixelSize(pixelationLevel)
+
+  // Calculate target dimensions from pixel size
   const calculateTargetDimensions = () => {
     if (!imageDimensions.width || !imageDimensions.height) {
       return { width: 100, height: 100 }
     }
-    const minSize = 1
-    const maxWidth = imageDimensions.width
-    const maxHeight = imageDimensions.height
-    const ratio = pixelationLevel / 100
-    const targetWidth = Math.round(minSize + (maxWidth - minSize) * ratio)
-    const targetHeight = Math.round(minSize + (maxHeight - minSize) * ratio)
+    const targetWidth = Math.max(1, Math.floor(imageDimensions.width / pixelSize))
+    const targetHeight = Math.max(1, Math.floor(imageDimensions.height / pixelSize))
     return { width: targetWidth, height: targetHeight }
   }
 
   const { width: targetWidth, height: targetHeight } = calculateTargetDimensions()
+
+  // Convert pixel size back to pixelation level (for input box synchronization)
+  // This needs to account for the rounding in calculatePixelSize to ensure accurate round-trip conversion
+  const pixelSizeToLevel = (size) => {
+    // Clamp size to valid range
+    const clampedSize = Math.max(1, Math.min(100, size))
+    
+    // Find the level that produces this pixel size when rounded
+    // We need to account for Math.round() in calculatePixelSize
+    // Try the exact inverse first
+    const normalizedSize = (clampedSize - 1) / 99
+    let level = 1 + Math.sqrt(normalizedSize) * 9
+    
+    // Verify that calculatePixelSize(level) produces the desired size
+    // If not, adjust slightly to account for rounding
+    let calculatedSize = Math.round(1 + Math.pow((level - 1) / 9, 2) * 99)
+    if (calculatedSize !== clampedSize) {
+      // Adjust level slightly to compensate for rounding
+      // Use a small iterative adjustment
+      const step = 0.001
+      const maxIterations = 100
+      let iterations = 0
+      while (calculatedSize !== clampedSize && iterations < maxIterations) {
+        if (calculatedSize < clampedSize) {
+          level += step
+        } else {
+          level -= step
+        }
+        calculatedSize = Math.round(1 + Math.pow((level - 1) / 9, 2) * 99)
+        iterations++
+      }
+    }
+    
+    // Allow level to go slightly above 10 if needed for precision
+    // The calculatePixelSize function will handle clamping
+    return level
+  }
+
+  // State for pixel size input
+  const [pixelSizeInput, setPixelSizeInput] = useState(pixelSize)
+  const [isInputFocused, setIsInputFocused] = useState(false)
+
+  // Update pixel size input when pixelation level changes (only if input is not focused)
+  useEffect(() => {
+    if (!isInputFocused) {
+      setPixelSizeInput(pixelSize)
+    }
+  }, [pixelSize, isInputFocused])
+
+  // Handle pixel size input change (only update local state for display)
+  const handlePixelSizeInputChange = (e) => {
+    const value = e.target.value
+    // Allow empty string and numbers while typing
+    if (value === '' || /^\d+$/.test(value)) {
+      setPixelSizeInput(value === '' ? '' : parseInt(value))
+    }
+  }
+
+  // Handle pixel size input blur or enter key - actually update pixelation level
+  const handlePixelSizeInputCommit = (e) => {
+    let value = e.target.value
+    // If empty, use current pixel size
+    if (value === '' || isNaN(parseInt(value))) {
+      value = pixelSize
+    } else {
+      value = parseInt(value)
+    }
+    const clampedValue = Math.max(1, Math.min(100, value))
+    setPixelSizeInput(clampedValue)
+    // Convert pixel size to pixelation level
+    const newLevel = pixelSizeToLevel(clampedValue)
+    onPixelationLevelChange(newLevel)
+    setIsInputFocused(false)
+  }
+
+  // Handle input focus - disable live-update
+  const handlePixelSizeInputFocus = () => {
+    setIsInputFocused(true)
+    if (liveUpdate) {
+      onLiveUpdateChange(false)
+    }
+  }
+
+  // Handle key down for Enter key
+  const handlePixelSizeInputKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault() // Prevent form submission
+      
+      // Manually execute commit logic synchronously
+      let value = e.target.value
+      // If empty, use current pixel size
+      if (value === '' || isNaN(parseInt(value))) {
+        value = pixelSize
+      } else {
+        value = parseInt(value)
+      }
+      const clampedValue = Math.max(1, Math.min(100, value))
+      setPixelSizeInput(clampedValue)
+      // Convert pixel size to pixelation level
+      const newLevel = pixelSizeToLevel(clampedValue)
+      onPixelationLevelChange(newLevel)
+      setIsInputFocused(false)
+      
+      // Blur the input
+      e.target.blur()
+      
+      // Immediately trigger process if live-update is off
+      if (!liveUpdate) {
+        onProcess()
+      }
+    }
+  }
+
+  // Convert pixel size (1-100) to slider value (0-100)
+  const pixelSizeToSlider = (size) => {
+    return ((size - 1) / 99) * 100
+  }
+  
+  // Convert slider value (0-100) to pixel size (1-100)
+  const sliderToPixelSize = (sliderValue) => {
+    return Math.round(1 + (sliderValue / 100) * 99)
+  }
+
+  // Handle precision increment/decrement (increment/decrement pixel size by 1)
+  const handleDecrement = () => {
+    // If live update is off, toggle it back on when arrow is clicked
+    if (!liveUpdate) {
+      onLiveUpdateChange(true)
+    }
+    const newPixelSize = Math.max(1, pixelSize - 1)
+    const newLevel = pixelSizeToLevel(newPixelSize)
+    onPixelationLevelChange(newLevel)
+  }
+
+  const handleIncrement = () => {
+    // If live update is off, toggle it back on when arrow is clicked
+    if (!liveUpdate) {
+      onLiveUpdateChange(true)
+    }
+    const newPixelSize = Math.min(100, pixelSize + 1)
+    const newLevel = pixelSizeToLevel(newPixelSize)
+    onPixelationLevelChange(newLevel)
+  }
+
+  // Handle slider change - map directly to pixel size
+  const handleSliderChange = (e) => {
+    // Auto-enable live-update if it's currently off
+    if (!liveUpdate) {
+      onLiveUpdateChange(true)
+    }
+    const sliderValue = parseInt(e.target.value)
+    const newPixelSize = sliderToPixelSize(sliderValue)
+    const newLevel = pixelSizeToLevel(newPixelSize)
+    onPixelationLevelChange(newLevel)
+  }
+
+  // Convert pixel size to slider value for display
+  const sliderValue = pixelSizeToSlider(pixelSize)
 
   return (
     <div className="pixelation-controls">
@@ -47,6 +217,7 @@ function PixelationControls({
               <button 
                 className="process-button-image" 
                 onClick={onProcess}
+                title="Enter"
               >
                 Process Image
               </button>
@@ -63,22 +234,51 @@ function PixelationControls({
       <div className="controls-content">
         <div className="input-group">
           <label>
-            Pixelation Level: {pixelationLevel}%
+            <div className="px2-input-container">
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={pixelSizeInput}
+                onChange={handlePixelSizeInputChange}
+                onBlur={handlePixelSizeInputCommit}
+                onFocus={handlePixelSizeInputFocus}
+                onKeyDown={handlePixelSizeInputKeyDown}
+                className="px2-input"
+                aria-label="Pixel size squared"
+                title={`Pixel size = 1px × ${pixelSize}px × ${pixelSize}px (each pixel represents ${pixelSize}×${pixelSize} original pixels)`}
+              />
+              <span className="px2-label">px²</span>
+            </div>
             <div className="slider-container">
-              <span className="slider-label">Max</span>
+              <button 
+                className="precision-button precision-button-left" 
+                onClick={handleDecrement}
+                aria-label="Decrease pixel size by 1"
+              >
+                &lt;
+              </button>
+              <span className="slider-label">Min</span>
               <input
                 type="range"
                 min="0"
                 max="100"
-                value={pixelationLevel}
-                onChange={(e) => onPixelationLevelChange(parseInt(e.target.value))}
+                value={sliderValue}
+                onChange={handleSliderChange}
                 className="pixelation-slider"
               />
-              <span className="slider-label">None</span>
+              <span className="slider-label">Max</span>
+              <button 
+                className="precision-button precision-button-right" 
+                onClick={handleIncrement}
+                aria-label="Increase pixel size by 1"
+              >
+                &gt;
+              </button>
             </div>
             <div className="slider-labels-bottom">
               <span>1×1</span>
-              <span>Original</span>
+              <span>100×100</span>
             </div>
           </label>
         </div>
@@ -96,9 +296,11 @@ function PixelationControls({
         {imageDimensions.width > 0 && (
           <div className="info-text">
             <small>
+              Pixel size: {pixelSize}×{pixelSize} (each pixel represents {pixelSize}×{pixelSize} original pixels)
+              <br />
               Target size: {targetWidth}×{targetHeight} pixels
-              {pixelationLevel === 100 && ' (no pixelation)'}
-              {pixelationLevel === 0 && ' (maximum pixelation - largest pixels)'}
+              {pixelSize === 1 && ' (no pixelation)'}
+              {pixelSize >= 50 && ' (maximum pixelation)'}
             </small>
           </div>
         )}
