@@ -146,9 +146,12 @@ function PixelationControls({
       // Blur the input
       e.target.blur()
       
-      // Immediately trigger process if live-update is off
+      // Trigger process if live-update is off - use queueMicrotask to ensure
+      // state updates complete before calling onProcess
       if (!liveUpdate) {
-        onProcess()
+        queueMicrotask(() => {
+          onProcess()
+        })
       }
     }
   }
