@@ -146,10 +146,12 @@ function PixelationControls({
       // Blur the input
       e.target.blur()
       
-      // Trigger process if live-update is off
-      // Pass the new level directly to avoid state update timing issues
+      // Trigger process if live-update is off - use queueMicrotask to ensure
+      // state updates complete before calling onProcess
       if (!liveUpdate) {
-        onProcess(newLevel)
+        queueMicrotask(() => {
+          onProcess()
+        })
       }
     }
   }
@@ -288,8 +290,8 @@ function PixelationControls({
           <label>
             Method
             <select value={method} onChange={(e) => onMethodChange(e.target.value)}>
-              <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
-              <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
+              <option value="average">Pixel Averaging (Smoother)</option>
+              <option value="nearest">Nearest Neighbor (Blocky)</option>
             </select>
           </label>
         </div>

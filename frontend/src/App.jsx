@@ -82,7 +82,7 @@ function App() {
     return { width: targetWidth, height: targetHeight, pixelSize, multiplier }
   }
 
-  const handleProcess = useCallback(async (overridePixelationLevel = null) => {
+  const handleProcess = useCallback(async () => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -93,14 +93,8 @@ function App() {
     setError(null)
 
     try {
-      // Use override level if provided, otherwise use current state
-      const levelToUse = overridePixelationLevel !== null ? overridePixelationLevel : pixelationLevel
-      const pixelSize = calculatePixelSize(levelToUse)
-      
-      // Calculate target dimensions and multiplier with the specified level
-      const targetWidth = Math.max(1, Math.floor(imageDimensions.width / pixelSize))
-      const targetHeight = Math.max(1, Math.floor(imageDimensions.height / pixelSize))
-      const multiplier = 1.0 + (pixelSize / 100) * 2.0
+      // Calculate target dimensions and multiplier
+      const { width: targetWidth, height: targetHeight, multiplier } = calculateTargetDimensions()
 
       // Process image client-side using Canvas API
       const blob = await pixelateImage(
