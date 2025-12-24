@@ -23,9 +23,8 @@ function ImagePreview({
     <div className="image-preview">
       <div className="preview-grid">
         <div className="preview-item">
-          <h3>Original</h3>
           {originalUrl && (
-            <div className="image-container original-image-container">
+            <div className="image-container original-image-container" title="Original">
               <img 
                 ref={originalImgRef}
                 src={originalUrl} 
@@ -46,9 +45,8 @@ function ImagePreview({
         </div>
 
         <div className="preview-item">
-          <h3>Pixelated</h3>
           {processedImageUrl ? (
-            <div className="image-container">
+            <div className="image-container" title="Pixelated">
               <img 
                 ref={processedImgRef}
                 src={processedImageUrl} 
@@ -57,7 +55,7 @@ function ImagePreview({
               />
             </div>
           ) : (
-            <div className="placeholder">
+            <div className="placeholder" title="Pixelated">
               <p>Adjust slider to see result</p>
             </div>
           )}
