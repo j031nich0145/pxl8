@@ -79,22 +79,45 @@ function PixelationControls({
   }
 
   // State for pixel size input
-  const [pixelSizeInput, setPixelSizeInput] = useState(pixelSize)
+  const [pixelSizeInput, setPixelSizeInput] = useState(String(pixelSize))
   const [isInputFocused, setIsInputFocused] = useState(false)
 
   // Update pixel size input when pixelation level changes (only if input is not focused)
   useEffect(() => {
     if (!isInputFocused) {
-      setPixelSizeInput(pixelSize)
+      setPixelSizeInput(String(pixelSize))
     }
   }, [pixelSize, isInputFocused])
 
   // Handle pixel size input change (only update local state for display)
   const handlePixelSizeInputChange = (e) => {
     const value = e.target.value
+    
     // Allow empty string and numbers while typing
     if (value === '' || /^\d+$/.test(value)) {
-      setPixelSizeInput(value === '' ? '' : parseInt(value))
+      // Store raw string value to allow free typing
+      setPixelSizeInput(value === '' ? '' : value)
+      
+      // Detect spinner clicks by comparing parsed values
+      const oldInputValue = pixelSizeInput === '' ? 0 : parseInt(pixelSizeInput) || 0
+      const newInputValue = value === '' ? 0 : parseInt(value) || 0
+      
+      const isSpinnerClick = value !== '' && 
+                            /^\d+$/.test(value) && 
+                            oldInputValue !== 0 &&
+                            Math.abs(newInputValue - oldInputValue) === 1
+      
+      // If spinner arrow was clicked, enable live-update and process immediately
+      if (isSpinnerClick) {
+        if (!liveUpdate) {
+          onLiveUpdateChange(true)
+        }
+        const clampedValue = Math.max(1, Math.min(100, newInputValue))
+        // Convert pixel size to pixelation level
+        const newLevel = pixelSizeToLevel(clampedValue)
+        onPixelationLevelChange(newLevel)
+      }
+      // Otherwise, just update input state - blur/Enter will handle commit
     }
   }
 
@@ -108,7 +131,7 @@ function PixelationControls({
       value = parseInt(value)
     }
     const clampedValue = Math.max(1, Math.min(100, value))
-    setPixelSizeInput(clampedValue)
+    setPixelSizeInput(String(clampedValue))
     // Convert pixel size to pixelation level
     const newLevel = pixelSizeToLevel(clampedValue)
     onPixelationLevelChange(newLevel)
@@ -137,7 +160,7 @@ function PixelationControls({
         value = parseInt(value)
       }
       const clampedValue = Math.max(1, Math.min(100, value))
-      setPixelSizeInput(clampedValue)
+      setPixelSizeInput(String(clampedValue))
       // Convert pixel size to pixelation level
       const newLevel = pixelSizeToLevel(clampedValue)
       onPixelationLevelChange(newLevel)
@@ -146,12 +169,10 @@ function PixelationControls({
       // Blur the input
       e.target.blur()
       
-      // Trigger process if live-update is off - use queueMicrotask to ensure
-      // state updates complete before calling onProcess
+      // Trigger process if live-update is off
+      // Pass the new level directly to avoid state update timing issues
       if (!liveUpdate) {
-        queueMicrotask(() => {
-          onProcess()
-        })
+        onProcess(newLevel)
       }
     }
   }
@@ -279,10 +300,6 @@ function PixelationControls({
                 &gt;
               </button>
             </div>
-            <div className="slider-labels-bottom">
-              <span>1×1</span>
-              <span>100×100</span>
-            </div>
           </label>
         </div>
 
@@ -290,8 +307,8 @@ function PixelationControls({
           <label>
             Method
             <select value={method} onChange={(e) => onMethodChange(e.target.value)}>
-              <option value="average">Pixel Averaging (Smoother)</option>
-              <option value="nearest">Nearest Neighbor (Blocky)</option>
+              <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
+              <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
             </select>
           </label>
         </div>
@@ -299,6 +316,8 @@ function PixelationControls({
         {imageDimensions.width > 0 && (
           <div className="info-text">
             <small>
+              Image: {imageDimensions.width}×{imageDimensions.height} px
+              <br />
               Pixel size: {pixelSize}×{pixelSize} (each pixel represents {pixelSize}×{pixelSize} original pixels)
               <br />
               Target size: {targetWidth}×{targetHeight} pixels

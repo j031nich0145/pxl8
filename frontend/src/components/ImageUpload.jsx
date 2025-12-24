@@ -39,8 +39,20 @@ function ImageUpload({ onFileUpload }) {
     }
   }
 
-  const onButtonClick = () => {
-    fileInputRef.current?.click()
+  const onButtonClick = (e) => {
+    e?.stopPropagation?.()
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  const onUploadAreaClick = (e) => {
+    // Only trigger if clicking directly on the upload area, not on buttons or other interactive elements
+    // This allows clicking anywhere on the upload area to browse, as the text suggests
+    if (e.target === e.currentTarget || 
+        (e.target.tagName !== 'BUTTON' && !e.target.closest('button'))) {
+      fileInputRef.current?.click()
+    }
   }
 
   return (
@@ -50,6 +62,7 @@ function ImageUpload({ onFileUpload }) {
       onDragLeave={handleDrag}
       onDragOver={handleDrag}
       onDrop={handleDrop}
+      onClick={onUploadAreaClick}
     >
       <input
         ref={fileInputRef}

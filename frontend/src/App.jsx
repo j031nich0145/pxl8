@@ -15,6 +15,12 @@ function App() {
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   const [darkMode, setDarkMode] = useState(false)
 
+  // Download counter - initialized from localStorage
+  const [downloadCount, setDownloadCount] = useState(() => {
+    const saved = localStorage.getItem('pxl8_download_count')
+    return saved ? parseInt(saved, 10) : 1
+  })
+
   // Pixelation settings - pixelation level from 1 (max pixelation) to 10 (minimal pixelation)
   const [liveUpdate, setLiveUpdate] = useState(true)
   const [pixelationLevel, setPixelationLevel] = useState(5.5) // Default center (5.5% = middle of 1-10%)
@@ -64,12 +70,13 @@ function App() {
   }
 
   // Calculate target dimensions from pixel size
-  const calculateTargetDimensions = () => {
+  const calculateTargetDimensions = (overrideLevel = null) => {
     if (!imageDimensions.width || !imageDimensions.height) {
       return { width: 100, height: 100, pixelSize: 1, multiplier: 1.0 }
     }
     
-    const pixelSize = calculatePixelSize(pixelationLevel)
+    const levelToUse = overrideLevel !== null ? overrideLevel : pixelationLevel
+    const pixelSize = calculatePixelSize(levelToUse)
     const targetWidth = Math.max(1, Math.floor(imageDimensions.width / pixelSize))
     const targetHeight = Math.max(1, Math.floor(imageDimensions.height / pixelSize))
     
@@ -82,7 +89,7 @@ function App() {
     return { width: targetWidth, height: targetHeight, pixelSize, multiplier }
   }
 
-  const handleProcess = useCallback(async () => {
+  const handleProcess = useCallback(async (overridePixelationLevel = null) => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -93,8 +100,9 @@ function App() {
     setError(null)
 
     try {
-      // Calculate target dimensions and multiplier
-      const { width: targetWidth, height: targetHeight, multiplier } = calculateTargetDimensions()
+      // Calculate target dimensions and multiplier (with optional override level)
+      const { width: targetWidth, height: targetHeight, multiplier } = 
+        calculateTargetDimensions(overridePixelationLevel)
 
       // Process image client-side using Canvas API
       const blob = await pixelateImage(
@@ -158,15 +166,44 @@ function App() {
     }
   }, [processedImageUrl])
 
+  // Sanitize filename - remove invalid characters
+  const sanitizeFilename = (filename) => {
+    // Remove invalid characters: / \ : * ? " < > |
+    return filename.replace(/[\/\\:*?"<>|]/g, '').trim()
+  }
+
   const handleDownload = () => {
-    if (processedImageUrl) {
-      const link = document.createElement('a')
-      link.href = processedImageUrl
-      link.download = `pixelated-${Date.now()}.png`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+    if (!processedImageUrl) return
+
+    // Generate default filename
+    const defaultFilename = `pxl8_${downloadCount}.png`
+    
+    // Show prompt dialog
+    const userInput = prompt('Enter filename (without extension):', `pxl8_${downloadCount}`)
+    
+    // Determine final filename
+    let finalFilename = defaultFilename
+    if (userInput !== null && userInput.trim() !== '') {
+      // User provided custom filename
+      const sanitized = sanitizeFilename(userInput.trim())
+      if (sanitized) {
+        // Add .png extension if not present
+        finalFilename = sanitized.endsWith('.png') ? sanitized : `${sanitized}.png`
+      }
     }
+    
+    // Create download link
+    const link = document.createElement('a')
+    link.href = processedImageUrl
+    link.download = finalFilename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    // Increment download count and save to localStorage
+    const newCount = downloadCount + 1
+    setDownloadCount(newCount)
+    localStorage.setItem('pxl8_download_count', newCount.toString())
   }
 
   // Apply dark mode to body for global styles
