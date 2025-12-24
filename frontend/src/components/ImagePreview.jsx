@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import './ImagePreview.css'
 
 function ImagePreview({ 
@@ -7,6 +7,8 @@ function ImagePreview({
   onImageChange
 }) {
   const [originalUrl, setOriginalUrl] = useState(null)
+  const originalImgRef = useRef(null)
+  const processedImgRef = useRef(null)
 
   useEffect(() => {
     if (originalFile) {
@@ -16,6 +18,7 @@ function ImagePreview({
     }
   }, [originalFile])
 
+
   return (
     <div className="image-preview">
       <div className="preview-grid">
@@ -23,7 +26,12 @@ function ImagePreview({
           <h3>Original</h3>
           {originalUrl && (
             <div className="image-container original-image-container">
-              <img src={originalUrl} alt="Original" />
+              <img 
+                ref={originalImgRef}
+                src={originalUrl} 
+                alt="Original" 
+                style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+              />
               <div className="image-overlay">
                 <button 
                   className="change-image-button" 
@@ -41,7 +49,12 @@ function ImagePreview({
           <h3>Pixelated</h3>
           {processedImageUrl ? (
             <div className="image-container">
-              <img src={processedImageUrl} alt="Processed" />
+              <img 
+                ref={processedImgRef}
+                src={processedImageUrl} 
+                alt="Processed"
+                style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+              />
             </div>
           ) : (
             <div className="placeholder">

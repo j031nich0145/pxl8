@@ -15,6 +15,7 @@ function App() {
   const [error, setError] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   
+  
   // Dark mode - initialized from localStorage
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('pxl8_dark_mode')
@@ -235,7 +236,7 @@ function App() {
     return filename.replace(/[\/\\:*?"<>|]/g, '').trim()
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!processedImageUrl) return
 
     // Generate default filename
@@ -273,6 +274,7 @@ function App() {
     setDownloadCount(newCount)
     localStorage.setItem('pxl8_download_count', newCount.toString())
   }
+
 
   // Save dark mode to localStorage whenever it changes
   useEffect(() => {

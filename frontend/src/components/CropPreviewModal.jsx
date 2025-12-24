@@ -7,10 +7,8 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
   const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 })
   const [cropSize, setCropSize] = useState({ width: 0, height: 0 })
   const [isDragging, setIsDragging] = useState(false)
-  const [isResizing, setIsResizing] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 })
   const [currentAspectRatio, setCurrentAspectRatio] = useState(null)
   const imageRef = useRef(null)
   const containerRef = useRef(null)
@@ -128,6 +126,67 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     setCropPosition({ x: newX, y: newY })
   }
 
+  // Handle scaling with keyboard
+  const handleScale = (direction) => {
+    if (!currentAspectRatio || !imageDimensions.width) return
+    
+    const scaleFactor = direction === 'up' ? 1.05 : 0.95 // Smaller increments for smoother scaling
+    const newWidth = cropSize.width * scaleFactor
+    const newHeight = newWidth / currentAspectRatio
+    
+    // Check bounds
+    let finalWidth = newWidth
+    let finalHeight = newHeight
+    
+    // Ensure minimum size
+    if (finalWidth < 50) {
+      finalWidth = 50
+      finalHeight = finalWidth / currentAspectRatio
+    }
+    if (finalHeight < 50) {
+      finalHeight = 50
+      finalWidth = finalHeight * currentAspectRatio
+    }
+    
+    // Calculate maximum size that fits in image bounds
+    const maxWidthFromX = imageDimensions.width - cropPosition.x
+    const maxHeightFromY = imageDimensions.height - cropPosition.y
+    const maxWidthFromRatio = maxHeightFromY * currentAspectRatio
+    const maxHeightFromRatio = maxWidthFromX / currentAspectRatio
+    
+    const maxWidth = Math.min(maxWidthFromX, maxWidthFromRatio)
+    const maxHeight = Math.min(maxHeightFromY, maxHeightFromRatio)
+    
+    // Constrain to image bounds
+    if (finalWidth > maxWidth) {
+      finalWidth = maxWidth
+      finalHeight = finalWidth / currentAspectRatio
+    }
+    if (finalHeight > maxHeight) {
+      finalHeight = maxHeight
+      finalWidth = finalHeight * currentAspectRatio
+    }
+    
+    // Adjust position if needed to keep crop within bounds (center the crop)
+    let newX = cropPosition.x
+    let newY = cropPosition.y
+    
+    // If scaling would go out of bounds, adjust position to keep it centered
+    if (cropPosition.x + finalWidth > imageDimensions.width) {
+      newX = imageDimensions.width - finalWidth
+    }
+    if (cropPosition.y + finalHeight > imageDimensions.height) {
+      newY = imageDimensions.height - finalHeight
+    }
+    
+    // Ensure position is valid
+    newX = Math.max(0, newX)
+    newY = Math.max(0, newY)
+    
+    setCropSize({ width: finalWidth, height: finalHeight })
+    setCropPosition({ x: newX, y: newY })
+  }
+
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -137,6 +196,12 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
       } else if (e.key === 'Escape') {
         e.preventDefault()
         onCancel()
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault()
+        handleScale('up')
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault()
+        handleScale('down')
       }
     }
 
@@ -144,7 +209,7 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [cropPosition, cropSize, originalFile, onCrop, onCancel])
+  }, [cropPosition, cropSize, originalFile, onCrop, onCancel, currentAspectRatio, imageDimensions])
 
   // Handle drag start
   const handleMouseDown = (e) => {
@@ -165,28 +230,6 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
       setDragOffset({
         x: mouseX - cropPosition.x,
         y: mouseY - cropPosition.y
-      })
-    }
-  }
-
-  // Handle resize start
-  const handleResizeStart = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsResizing(true)
-    const imgRect = imageRef.current?.getBoundingClientRect()
-    if (imgRect) {
-      const scale = getScale()
-      const mouseX = (e.clientX - imgRect.left) / scale
-      const mouseY = (e.clientY - imgRect.top) / scale
-      
-      setResizeStart({
-        x: mouseX,
-        y: mouseY,
-        width: cropSize.width,
-        height: cropSize.height,
-        cropX: cropPosition.x,
-        cropY: cropPosition.y
       })
     }
   }
@@ -233,76 +276,6 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     }
   }, [isDragging, dragOffset, imageDimensions, cropSize])
 
-  // Handle resize
-  useEffect(() => {
-    if (!isResizing || !currentAspectRatio) return
-
-    const handleMouseMove = (e) => {
-      if (!imageRef.current || !imageDimensions.width) return
-
-      // Prevent event from bubbling to overlay
-      e.stopPropagation()
-
-      const imgRect = imageRef.current.getBoundingClientRect()
-      const displayWidth = imageRef.current.offsetWidth
-      const scale = displayWidth / imageDimensions.width
-      
-      // Calculate mouse position in image coordinates
-      const mouseX = (e.clientX - imgRect.left) / scale
-      const mouseY = (e.clientY - imgRect.top) / scale
-      
-      // Calculate distance from anchor (top-left) to mouse
-      const deltaX = mouseX - resizeStart.cropX
-      const deltaY = mouseY - resizeStart.cropY
-      
-      // Calculate new size maintaining aspect ratio
-      // Use the larger delta to determine size
-      const newWidth = Math.max(50, Math.min(
-        resizeStart.width + deltaX,
-        imageDimensions.width - resizeStart.cropX
-      ))
-      const newHeight = newWidth / currentAspectRatio
-      
-      // Check if height fits
-      let finalWidth = newWidth
-      let finalHeight = newHeight
-      
-      if (resizeStart.cropY + newHeight > imageDimensions.height) {
-        // Constrain by height instead
-        finalHeight = imageDimensions.height - resizeStart.cropY
-        finalWidth = finalHeight * currentAspectRatio
-      }
-      
-      // Ensure we don't go below minimum size
-      if (finalWidth < 50) {
-        finalWidth = 50
-        finalHeight = finalWidth / currentAspectRatio
-      }
-      if (finalHeight < 50) {
-        finalHeight = 50
-        finalWidth = finalHeight * currentAspectRatio
-      }
-      
-      // Constrain to image bounds
-      finalWidth = Math.min(finalWidth, imageDimensions.width - resizeStart.cropX)
-      finalHeight = Math.min(finalHeight, imageDimensions.height - resizeStart.cropY)
-      
-      setCropSize({ width: finalWidth, height: finalHeight })
-    }
-
-    const handleMouseUp = () => {
-      setIsResizing(false)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isResizing, resizeStart, imageDimensions, currentAspectRatio])
-
   // Calculate scale factor for display
   const getScale = () => {
     if (!imageRef.current || !imageDimensions.width) return 1
@@ -341,20 +314,11 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
               onMouseDown={handleMouseDown}
             >
               <div className="crop-handle crop-handle-center" />
-              <div 
-                className="crop-handle crop-handle-resize" 
-                onMouseDown={handleResizeStart}
-                title="Resize crop area"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 2L10 10M10 10L7 10M10 10L10 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
             </div>
           </div>
         </div>
         <div className="crop-instructions">
-          Drag into position, resize with corner handle, and press Enter
+          Drag and resize with +/-
         </div>
         <div className="crop-actions">
           <button className="crop-rotate-button" onClick={handleRotate} title="Rotate 90 degrees">

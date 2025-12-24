@@ -36,6 +36,11 @@ body.dark-mode .preview-item h3 {
   overflow: hidden;
 }
 
+.image-container img {
+  position: relative;
+  z-index: 1;
+}
+
 body.dark-mode .image-container {
   background: #3d3d3d !important;
   border-color: #404040;
