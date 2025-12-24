@@ -3,12 +3,16 @@
  */
 
 /**
- * Crop an image to a specific aspect ratio (centered crop)
+ * Crop an image to a specific aspect ratio (centered crop) or with custom coordinates
  * @param {File} file - Image file to crop
  * @param {string} aspectRatio - Aspect ratio: '1:1', '3:2', or '4:3'
+ * @param {number} [cropX] - Optional X coordinate for crop (in pixels, relative to original image)
+ * @param {number} [cropY] - Optional Y coordinate for crop (in pixels, relative to original image)
+ * @param {number} [cropWidth] - Optional width for crop (in pixels)
+ * @param {number} [cropHeight] - Optional height for crop (in pixels)
  * @returns {Promise<File>} - Cropped image as File
  */
-export async function cropImage(file, aspectRatio) {
+export async function cropImage(file, aspectRatio, cropX = null, cropY = null, cropWidth = null, cropHeight = null) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -18,50 +22,59 @@ export async function cropImage(file, aspectRatio) {
         const width = img.width
         const height = img.height
         
-        // Calculate target aspect ratio
-        let targetRatio
-        if (aspectRatio === '1:1') {
-          targetRatio = 1
-        } else if (aspectRatio === '3:2') {
-          targetRatio = 3 / 2
-        } else if (aspectRatio === '4:3') {
-          targetRatio = 4 / 3
+        let finalCropX, finalCropY, finalCropWidth, finalCropHeight
+        
+        // If custom coordinates provided, use them
+        if (cropX !== null && cropY !== null && cropWidth !== null && cropHeight !== null) {
+          finalCropX = cropX
+          finalCropY = cropY
+          finalCropWidth = cropWidth
+          finalCropHeight = cropHeight
         } else {
-          reject(new Error('Invalid aspect ratio'))
-          return
-        }
-        
-        // Calculate current aspect ratio
-        const currentRatio = width / height
-        
-        // Calculate crop dimensions (centered)
-        let cropWidth, cropHeight, cropX, cropY
-        
-        if (currentRatio > targetRatio) {
-          // Image is wider than target - crop width (keep full height)
-          cropHeight = height
-          cropWidth = height * targetRatio
-          cropX = (width - cropWidth) / 2
-          cropY = 0
-        } else {
-          // Image is taller than target - crop height (keep full width)
-          cropWidth = width
-          cropHeight = width / targetRatio
-          cropX = 0
-          cropY = (height - cropHeight) / 2
+          // Otherwise, calculate centered crop based on aspect ratio
+          // Calculate target aspect ratio
+          let targetRatio
+          if (aspectRatio === '1:1') {
+            targetRatio = 1
+          } else if (aspectRatio === '3:2') {
+            targetRatio = 3 / 2
+          } else if (aspectRatio === '4:3') {
+            targetRatio = 4 / 3
+          } else {
+            reject(new Error('Invalid aspect ratio'))
+            return
+          }
+          
+          // Calculate current aspect ratio
+          const currentRatio = width / height
+          
+          // Calculate crop dimensions (centered)
+          if (currentRatio > targetRatio) {
+            // Image is wider than target - crop width (keep full height)
+            finalCropHeight = height
+            finalCropWidth = height * targetRatio
+            finalCropX = (width - finalCropWidth) / 2
+            finalCropY = 0
+          } else {
+            // Image is taller than target - crop height (keep full width)
+            finalCropWidth = width
+            finalCropHeight = width / targetRatio
+            finalCropX = 0
+            finalCropY = (height - finalCropHeight) / 2
+          }
         }
         
         // Create canvas for cropping
         const canvas = document.createElement('canvas')
-        canvas.width = cropWidth
-        canvas.height = cropHeight
+        canvas.width = finalCropWidth
+        canvas.height = finalCropHeight
         const ctx = canvas.getContext('2d')
         
         // Draw cropped portion
         ctx.drawImage(
           img,
-          cropX, cropY, cropWidth, cropHeight,  // Source crop
-          0, 0, cropWidth, cropHeight           // Destination
+          finalCropX, finalCropY, finalCropWidth, finalCropHeight,  // Source crop
+          0, 0, finalCropWidth, finalCropHeight           // Destination
         )
         
         // Convert to blob then to file

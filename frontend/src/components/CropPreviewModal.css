@@ -1,0 +1,214 @@
+.crop-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(2px);
+}
+
+.crop-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .crop-modal {
+  background: #2d2d2d;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.crop-preview-container {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 70vh;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.crop-preview-image {
+  max-width: 100%;
+  max-height: 70vh;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.crop-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.crop-overlay {
+  position: absolute;
+  border: 3px solid #4dd0e1;
+  background: transparent;
+  cursor: move;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+body.dark-mode .crop-overlay {
+  border-color: #1976d2;
+}
+
+.crop-handle {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.crop-handle-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  background: #4dd0e1;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  cursor: move;
+}
+
+body.dark-mode .crop-handle-center {
+  background: #1976d2;
+  border-color: #e0e0e0;
+}
+
+.crop-handle-resize {
+  bottom: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  background: #ff9800;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  cursor: nwse-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+}
+
+body.dark-mode .crop-handle-resize {
+  background: #f57c00;
+  border-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.crop-handle-resize:hover {
+  background: #fb8c00;
+  transform: scale(1.1);
+}
+
+body.dark-mode .crop-handle-resize:hover {
+  background: #ef6c00;
+}
+
+.crop-handle-resize svg {
+  width: 12px;
+  height: 12px;
+}
+
+.crop-instructions {
+  margin-top: 16px;
+  text-align: center;
+  color: #616161;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+body.dark-mode .crop-instructions {
+  color: #b0b0b0;
+}
+
+.crop-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.crop-rotate-button,
+.crop-cancel-button,
+.crop-apply-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.crop-rotate-button {
+  background: #ff9800;
+  color: #ffffff;
+  margin-right: auto;
+}
+
+body.dark-mode .crop-rotate-button {
+  background: #f57c00;
+  color: #ffffff;
+}
+
+.crop-rotate-button:hover {
+  background: #fb8c00;
+}
+
+body.dark-mode .crop-rotate-button:hover {
+  background: #ef6c00;
+}
+
+.crop-cancel-button {
+  background: #e0e0e0;
+  color: #212121;
+}
+
+body.dark-mode .crop-cancel-button {
+  background: #404040;
+  color: #e0e0e0;
+}
+
+.crop-cancel-button:hover {
+  background: #d0d0d0;
+}
+
+body.dark-mode .crop-cancel-button:hover {
+  background: #505050;
+}
+
+.crop-apply-button {
+  background: #4dd0e1;
+  color: #006064;
+}
+
+body.dark-mode .crop-apply-button {
+  background: #1976d2;
+  color: #e3f2fd;
+}
+
+.crop-apply-button:hover {
+  background: #26c6da;
+}
+
+body.dark-mode .crop-apply-button:hover {
+  background: #1565c0;
+}
+

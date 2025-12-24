@@ -40,6 +40,10 @@ body.dark-mode .controls-header {
   position: relative;
 }
 
+.crop-button-container:hover .crop-menu {
+  display: flex;
+}
+
 .crop-button,
 .crunch-button {
   padding: 8px 16px;
@@ -87,7 +91,7 @@ body.dark-mode .crunch-button:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   min-width: 150px;
-  display: flex;
+  display: none;
   flex-direction: column;
   overflow: hidden;
 }

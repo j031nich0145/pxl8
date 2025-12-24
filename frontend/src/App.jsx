@@ -57,7 +57,7 @@ function App() {
     setError(null)
   }
 
-  const handleCrop = async (aspectRatio) => {
+  const handleCrop = async (aspectRatio, cropX, cropY, cropWidth, cropHeight) => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -65,7 +65,7 @@ function App() {
 
     try {
       setError(null)
-      const croppedFile = await cropImage(uploadedFile, aspectRatio)
+      const croppedFile = await cropImage(uploadedFile, aspectRatio, cropX, cropY, cropWidth, cropHeight)
       
       // Update uploaded file and reset processed image
       setUploadedFile(croppedFile)
@@ -311,6 +311,7 @@ function App() {
                 onCrop={handleCrop}
                 onCrunch={handleCrunch}
                 hasUploadedFile={!!uploadedFile}
+                originalFile={uploadedFile}
               />
             </div>
           </>
