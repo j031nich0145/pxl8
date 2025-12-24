@@ -11,63 +11,6 @@
   background: #2d2d2d;
 }
 
-.app-header {
-  background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-  color: #006064;
-  padding: 12px 20px;
-  border-bottom: 1px solid #e0e0e0;
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-.app.dark-mode .app-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6b 100%);
-  color: #b0d4f1;
-  border-bottom-color: #2d2d2d;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.app-header h1 {
-  font-size: 1.8rem;
-  margin: 0;
-  font-weight: 700;
-  color: #00838f;
-  transition: color 0.3s ease;
-}
-
-.app.dark-mode .app-header h1 {
-  color: #4fc3f7;
-}
-
-.theme-toggle {
-  background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.app.dark-mode .theme-toggle {
-  background: rgba(0, 0, 0, 0.3);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.5);
-  transform: scale(1.1);
-}
-
-.app.dark-mode .theme-toggle:hover {
-  background: rgba(0, 0, 0, 0.5);
-}
 
 .app-content {
   padding: 15px 20px;
@@ -270,10 +213,6 @@
 @media (max-width: 768px) {
   .controls-grid {
     grid-template-columns: 1fr;
-  }
-
-  .app-header h1 {
-    font-size: 1.5rem;
   }
 }
 

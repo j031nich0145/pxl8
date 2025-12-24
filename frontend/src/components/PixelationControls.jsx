@@ -17,6 +17,8 @@ function PixelationControls({
   onCrunch,
   hasUploadedFile,
   originalFile,
+  darkMode,
+  onDarkModeChange,
 }) {
   const [showCropModal, setShowCropModal] = useState(false)
   const [selectedAspectRatio, setSelectedAspectRatio] = useState(null)
@@ -178,10 +180,9 @@ function PixelationControls({
       // Blur the input
       e.target.blur()
       
-      // Trigger process if live-update is off
-      // Pass the new level directly to avoid state update timing issues
+      // Enable live-update if it's off (since Process button is removed)
       if (!liveUpdate) {
-        onProcess(newLevel)
+        onLiveUpdateChange(true)
       }
     }
   }
@@ -254,67 +255,90 @@ function PixelationControls({
     <div className="pixelation-controls">
       <div className="controls-header">
         <div className="header-row">
-          {hasUploadedFile && (
-            <div className="crop-crunch-buttons">
-              <div 
-                className="crop-button-container"
-                onMouseEnter={() => setIsCropMenuHovered(true)}
-                onMouseLeave={() => setIsCropMenuHovered(false)}
-              >
-                <button
-                  className="crop-button"
-                  disabled={!hasUploadedFile}
+          <div className="header-left">
+            {hasUploadedFile && (
+              <div className="crop-crunch-buttons">
+                <div 
+                  className="crop-button-container"
+                  onMouseEnter={() => setIsCropMenuHovered(true)}
+                  onMouseLeave={() => setIsCropMenuHovered(false)}
                 >
-                  Crop
+                  <button
+                    className="crop-button"
+                    disabled={!hasUploadedFile}
+                  >
+                    Crop
+                  </button>
+                  {isCropMenuHovered && (
+                    <div className="crop-menu">
+                      <button onClick={() => handleCropOptionClick('1:1')}>1:1 (Square)</button>
+                      <button onClick={() => handleCropOptionClick('3:2')}>3:2 (Photo)</button>
+                      <button onClick={() => handleCropOptionClick('4:3')}>4:3 (Traditional)</button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  className="crunch-button"
+                  onClick={onCrunch}
+                  disabled={!hasUploadedFile}
+                  title="Converts to 72dpi"
+                >
+                  Crunch
                 </button>
-                {isCropMenuHovered && (
-                  <div className="crop-menu">
-                    <button onClick={() => handleCropOptionClick('1:1')}>1:1 (Square)</button>
-                    <button onClick={() => handleCropOptionClick('3:2')}>3:2 (Photo)</button>
-                    <button onClick={() => handleCropOptionClick('4:3')}>4:3 (Traditional)</button>
-                  </div>
-                )}
               </div>
-              <button
-                className="crunch-button"
-                onClick={onCrunch}
-                disabled={!hasUploadedFile}
-                title="Converts to 72dpi"
-              >
-                Crunch
-              </button>
-            </div>
-          )}
-          {showCropModal && originalFile && (
-            <CropPreviewModal
-              originalFile={originalFile}
-              aspectRatio={selectedAspectRatio}
-              onCrop={handleCropApply}
-              onCancel={handleCropCancel}
-            />
-          )}
-          <label className="toggle-label">
-            <input
-              type="checkbox"
-              checked={liveUpdate}
-              onChange={(e) => onLiveUpdateChange(e.target.checked)}
-              className="toggle-switch"
-            />
-            <span>Live Update</span>
-          </label>
-          <div className="header-buttons">
-            {!liveUpdate && (
-              <button 
-                className="process-button-image" 
-                onClick={onProcess}
-                title="Enter"
-              >
-                Process Image
-              </button>
+            )}
+            {showCropModal && originalFile && (
+              <CropPreviewModal
+                originalFile={originalFile}
+                aspectRatio={selectedAspectRatio}
+                onCrop={handleCropApply}
+                onCancel={handleCropCancel}
+              />
+            )}
+            {hasUploadedFile && (
+              <>
+                <div className="header-method-select">
+                  <select value={method} onChange={(e) => onMethodChange(e.target.value)} className="method-select-header">
+                    <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
+                    <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
+                  </select>
+                </div>
+                <div className="header-px2-input">
+                  <div className="px2-input-container-header">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={pixelSizeInput}
+                      onChange={handlePixelSizeInputChange}
+                      onBlur={handlePixelSizeInputCommit}
+                      onFocus={handlePixelSizeInputFocus}
+                      onKeyDown={handlePixelSizeInputKeyDown}
+                      className="px2-input-header"
+                      aria-label="Pixel size squared"
+                      title="Press Enter or Live Update"
+                    />
+                    <span className="px2-label-header">px²</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="header-right">
+            {hasUploadedFile && (
+              <label className="toggle-label">
+                <span>Live Update</span>
+                <input
+                  type="checkbox"
+                  checked={liveUpdate}
+                  onChange={(e) => onLiveUpdateChange(e.target.checked)}
+                  className="toggle-switch"
+                />
+              </label>
             )}
             {processedImageUrl && (
               <button className="download-button" onClick={onDownload}>
-                Download
+                ⬇️
               </button>
             )}
           </div>
@@ -324,22 +348,6 @@ function PixelationControls({
       <div className="controls-content">
         <div className="input-group">
           <label>
-            <div className="px2-input-container">
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={pixelSizeInput}
-                onChange={handlePixelSizeInputChange}
-                onBlur={handlePixelSizeInputCommit}
-                onFocus={handlePixelSizeInputFocus}
-                onKeyDown={handlePixelSizeInputKeyDown}
-                className="px2-input"
-                aria-label="Pixel size squared"
-                title={`Pixel size = 1px × ${pixelSize}px × ${pixelSize}px (each pixel represents ${pixelSize}×${pixelSize} original pixels)`}
-              />
-              <span className="px2-label">px²</span>
-            </div>
             <div className="slider-container">
               <button 
                 className="precision-button precision-button-left" 
@@ -369,16 +377,6 @@ function PixelationControls({
           </label>
         </div>
 
-        <div className="input-group">
-          <label>
-            Method
-            <select value={method} onChange={(e) => onMethodChange(e.target.value)}>
-              <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
-              <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
-            </select>
-          </label>
-        </div>
-
         {imageDimensions.width > 0 && (
           <div className="info-text">
             <small>
@@ -390,6 +388,11 @@ function PixelationControls({
               {pixelSize === 1 && ' (no pixelation)'}
               {pixelSize >= 50 && ' (maximum pixelation)'}
             </small>
+            {onDarkModeChange && (
+              <button className="theme-toggle-info" onClick={() => onDarkModeChange(!darkMode)}>
+                {darkMode ? '☀️' : '🌙'}
+              </button>
+            )}
           </div>
         )}
       </div>

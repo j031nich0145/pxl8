@@ -27,6 +27,22 @@ body.dark-mode .controls-header {
   align-items: center;
   justify-content: space-between;
   gap: 15px;
+  flex-wrap: wrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-shrink: 0;
 }
 
 .crop-crunch-buttons {
@@ -132,11 +148,87 @@ body.dark-mode .crop-menu button:not(:last-child) {
   border-bottom-color: #404040;
 }
 
-.header-buttons {
+.header-method-select {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+}
+
+.method-select-header {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: #ffffff;
+  color: #212121;
+  transition: border-color 0.2s, background-color 0.3s ease, color 0.3s ease;
+  width: auto;
+  min-width: 200px;
+  max-width: 600px;
+}
+
+body.dark-mode .method-select-header {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+.method-select-header:focus {
+  outline: none;
+  border-color: #4dd0e1;
+}
+
+body.dark-mode .method-select-header:focus {
+  border-color: #1976d2;
+}
+
+.header-px2-input {
+  display: flex;
+  align-items: center;
+}
+
+.px2-input-container-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.px2-input-header {
+  width: 100px;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #212121;
+  transition: border-color 0.2s, background-color 0.3s ease, color 0.3s ease;
+  text-align: center;
+}
+
+body.dark-mode .px2-input-header {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+.px2-input-header:focus {
+  outline: none;
+  border-color: #4dd0e1;
+}
+
+body.dark-mode .px2-input-header:focus {
+  border-color: #1976d2;
+}
+
+.px2-label-header {
+  font-size: 1.1rem;
+  color: #616161;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .px2-label-header {
+  color: #b0b0b0;
 }
 
 .download-button {
@@ -145,11 +237,15 @@ body.dark-mode .crop-menu button:not(:last-child) {
   color: #006064;
   border: none;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
   white-space: nowrap;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 body.dark-mode .download-button {
@@ -492,6 +588,7 @@ body.dark-mode .slider-labels-bottom {
   border-radius: 6px;
   color: #00838f;
   transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
 }
 
 body.dark-mode .info-text {
@@ -501,6 +598,33 @@ body.dark-mode .info-text {
 
 .info-text small {
   font-size: 0.85rem;
+}
+
+.theme-toggle-info {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+body.dark-mode .theme-toggle-info {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle-info:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+body.dark-mode .theme-toggle-info:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .precision-button {
@@ -598,7 +722,7 @@ body.dark-mode .pixel-size-label {
 }
 
 .px2-input {
-  width: 70px;
+  width: 100px;
   padding: 8px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;

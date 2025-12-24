@@ -292,15 +292,6 @@ function App() {
 
   return (
     <div className={`app ${darkMode ? 'dark-mode' : ''}`}>
-      <header className="app-header">
-        <div className="header-content">
-          <h1>PXL8</h1>
-          <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
-            {darkMode ? '☀️' : '🌙'}
-          </button>
-        </div>
-      </header>
-
       <div className="app-content">
         {!uploadedFile ? (
           <div className="upload-section">
@@ -334,6 +325,8 @@ function App() {
                 onCrunch={handleCrunch}
                 hasUploadedFile={!!uploadedFile}
                 originalFile={uploadedFile}
+                darkMode={darkMode}
+                onDarkModeChange={setDarkMode}
               />
             </div>
           </>
