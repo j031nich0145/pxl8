@@ -337,7 +337,7 @@ function PixelationControls({
               </label>
             )}
             {processedImageUrl && (
-              <button className="download-button" onClick={onDownload}>
+              <button className="download-button" onClick={onDownload} title="Download">
                 ⬇️
               </button>
             )}
