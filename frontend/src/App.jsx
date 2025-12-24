@@ -14,7 +14,12 @@ function App() {
   const [processingProgress, setProcessingProgress] = useState(0)
   const [error, setError] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
-  const [darkMode, setDarkMode] = useState(false)
+  
+  // Dark mode - initialized from localStorage
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('pxl8_dark_mode')
+    return saved === 'true' ? true : false
+  })
 
   // Download counter - initialized from localStorage
   const [downloadCount, setDownloadCount] = useState(() => {
@@ -87,6 +92,11 @@ function App() {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
+    }
+
+    // Enable Live Update if it's off
+    if (!liveUpdate) {
+      setLiveUpdate(true)
     }
 
     try {
@@ -234,9 +244,14 @@ function App() {
     // Show prompt dialog
     const userInput = prompt('Enter filename (without extension):', `pxl8_${downloadCount}`)
     
+    // If Cancel pressed (null), exit early without downloading
+    if (userInput === null) {
+      return // Don't download, don't increment counter
+    }
+    
     // Determine final filename
     let finalFilename = defaultFilename
-    if (userInput !== null && userInput.trim() !== '') {
+    if (userInput.trim() !== '') {
       // User provided custom filename
       const sanitized = sanitizeFilename(userInput.trim())
       if (sanitized) {
@@ -258,6 +273,11 @@ function App() {
     setDownloadCount(newCount)
     localStorage.setItem('pxl8_download_count', newCount.toString())
   }
+
+  // Save dark mode to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('pxl8_dark_mode', darkMode.toString())
+  }, [darkMode])
 
   // Apply dark mode to body for global styles
   useEffect(() => {

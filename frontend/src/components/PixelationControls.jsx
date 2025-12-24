@@ -20,6 +20,7 @@ function PixelationControls({
 }) {
   const [showCropModal, setShowCropModal] = useState(false)
   const [selectedAspectRatio, setSelectedAspectRatio] = useState(null)
+  const [isCropMenuHovered, setIsCropMenuHovered] = useState(false)
   
   // Calculate pixel size from pixelation level
   // Maps to pixel block size (1x1 to 100x100) using exponential function
@@ -255,18 +256,24 @@ function PixelationControls({
         <div className="header-row">
           {hasUploadedFile && (
             <div className="crop-crunch-buttons">
-              <div className="crop-button-container">
+              <div 
+                className="crop-button-container"
+                onMouseEnter={() => setIsCropMenuHovered(true)}
+                onMouseLeave={() => setIsCropMenuHovered(false)}
+              >
                 <button
                   className="crop-button"
                   disabled={!hasUploadedFile}
                 >
                   Crop
                 </button>
-                <div className="crop-menu">
-                  <button onClick={() => handleCropOptionClick('1:1')}>1:1 (Square)</button>
-                  <button onClick={() => handleCropOptionClick('3:2')}>3:2 (Photo)</button>
-                  <button onClick={() => handleCropOptionClick('4:3')}>4:3 (Traditional)</button>
-                </div>
+                {isCropMenuHovered && (
+                  <div className="crop-menu">
+                    <button onClick={() => handleCropOptionClick('1:1')}>1:1 (Square)</button>
+                    <button onClick={() => handleCropOptionClick('3:2')}>3:2 (Photo)</button>
+                    <button onClick={() => handleCropOptionClick('4:3')}>4:3 (Traditional)</button>
+                  </div>
+                )}
               </div>
               <button
                 className="crunch-button"
