@@ -15,6 +15,8 @@ function App() {
   const [error, setError] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   
+  // Undo history - stores up to 3 previous image states
+  const [undoHistory, setUndoHistory] = useState([])
   
   // Dark mode - initialized from localStorage
   const [darkMode, setDarkMode] = useState(() => {
@@ -37,11 +39,55 @@ function App() {
     setLiveUpdate(value)
   }
 
+  // Undo history management functions
+  const addToHistory = useCallback((file) => {
+    if (!file) return
+    
+    setUndoHistory(prev => {
+      const newHistory = [...prev, file]
+      // Keep only last 3 items
+      return newHistory.slice(-3)
+    })
+  }, [])
+
+  const canUndo = useCallback(() => {
+    return undoHistory.length > 0
+  }, [undoHistory])
+
+  const handleUndo = useCallback(() => {
+    if (undoHistory.length === 0) return
+
+    setUndoHistory(prev => {
+      const newHistory = [...prev]
+      const previousFile = newHistory.pop()
+      
+      if (previousFile) {
+        setUploadedFile(previousFile)
+        setProcessedImage(null)
+        setProcessedImageUrl(null)
+        
+        // Get new image dimensions
+        const img = new Image()
+        img.onload = () => {
+          setImageDimensions({ width: img.width, height: img.height })
+        }
+        img.src = URL.createObjectURL(previousFile)
+      }
+      
+      return newHistory
+    })
+  }, [undoHistory.length])
+
+  const clearHistory = useCallback(() => {
+    setUndoHistory([])
+  }, [])
+
   const handleFileUpload = async (file) => {
     setUploadedFile(file)
     setProcessedImage(null)
     setProcessedImageUrl(null)
     setError(null)
+    clearHistory() // Clear history when new file is uploaded
     
     // Get image dimensions for pixelation calculation
     const img = new Image()
@@ -61,6 +107,7 @@ function App() {
     setProcessedImageUrl(null)
     setImageDimensions({ width: 0, height: 0 })
     setError(null)
+    clearHistory() // Clear history when user picks new image
   }
 
   const handleCrop = async (aspectRatio, cropX, cropY, cropWidth, cropHeight) => {
@@ -71,6 +118,9 @@ function App() {
 
     try {
       setError(null)
+      // Save current file to history before applying crop
+      addToHistory(uploadedFile)
+      
       const croppedFile = await cropImage(uploadedFile, aspectRatio, cropX, cropY, cropWidth, cropHeight)
       
       // Update uploaded file and reset processed image
@@ -102,6 +152,9 @@ function App() {
 
     try {
       setError(null)
+      // Save current file to history before applying crunch
+      addToHistory(uploadedFile)
+      
       const normalizedFile = await normalizeTo72dpi(uploadedFile)
       
       // Update uploaded file and reset processed image
@@ -117,6 +170,42 @@ function App() {
       img.src = URL.createObjectURL(normalizedFile)
     } catch (err) {
       setError(err.message || 'Crunch failed')
+    }
+  }
+
+  const handle2xCrunch = async () => {
+    if (!uploadedFile) {
+      setError('Please upload an image first')
+      return
+    }
+
+    // Enable Live Update if it's off
+    if (!liveUpdate) {
+      setLiveUpdate(true)
+    }
+
+    try {
+      setError(null)
+      // Save current file to history before applying 2x crunch
+      addToHistory(uploadedFile)
+      
+      // Apply crunch twice
+      const firstCrunch = await normalizeTo72dpi(uploadedFile)
+      const secondCrunch = await normalizeTo72dpi(firstCrunch)
+      
+      // Update uploaded file and reset processed image
+      setUploadedFile(secondCrunch)
+      setProcessedImage(null)
+      setProcessedImageUrl(null)
+      
+      // Get new image dimensions
+      const img = new Image()
+      img.onload = () => {
+        setImageDimensions({ width: img.width, height: img.height })
+      }
+      img.src = URL.createObjectURL(secondCrunch)
+    } catch (err) {
+      setError(err.message || '2x Crunch failed')
     }
   }
 
@@ -290,6 +379,27 @@ function App() {
     }
   }, [darkMode])
 
+  // Keyboard shortcut for undo (Ctrl+Z or Cmd+Z)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Check if crop modal is open (prevent undo during crop)
+      const cropModal = document.querySelector('.crop-modal-overlay')
+      if (cropModal && cropModal.style.display !== 'none') {
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        if (undoHistory.length > 0) {
+          handleUndo()
+        }
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undoHistory.length, handleUndo])
+
   return (
     <div className={`app ${darkMode ? 'dark-mode' : ''}`}>
       <div className="app-content">
@@ -323,6 +433,9 @@ function App() {
                 processedImageUrl={processedImageUrl}
                 onCrop={handleCrop}
                 onCrunch={handleCrunch}
+                on2xCrunch={handle2xCrunch}
+                onUndo={handleUndo}
+                canUndo={canUndo()}
                 hasUploadedFile={!!uploadedFile}
                 originalFile={uploadedFile}
                 darkMode={darkMode}

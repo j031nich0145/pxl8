@@ -15,6 +15,9 @@ function PixelationControls({
   processedImageUrl,
   onCrop,
   onCrunch,
+  on2xCrunch,
+  onUndo,
+  canUndo,
   hasUploadedFile,
   originalFile,
   darkMode,
@@ -23,6 +26,7 @@ function PixelationControls({
   const [showCropModal, setShowCropModal] = useState(false)
   const [selectedAspectRatio, setSelectedAspectRatio] = useState(null)
   const [isCropMenuHovered, setIsCropMenuHovered] = useState(false)
+  const [isCrunchMenuHovered, setIsCrunchMenuHovered] = useState(false)
   
   // Calculate pixel size from pixelation level
   // Maps to pixel block size (1x1 to 100x100) using exponential function
@@ -257,7 +261,44 @@ function PixelationControls({
         <div className="header-row">
           <div className="header-left">
             {hasUploadedFile && (
-              <div className="crop-crunch-buttons">
+              <>
+                {/* Crunch dropdown - first */}
+                <div 
+                  className="crunch-button-container"
+                  onMouseEnter={() => setIsCrunchMenuHovered(true)}
+                  onMouseLeave={() => setIsCrunchMenuHovered(false)}
+                >
+                  <button
+                    className="crunch-button"
+                    disabled={!hasUploadedFile}
+                  >
+                    Crunch
+                  </button>
+                  {isCrunchMenuHovered && (
+                    <div className="crunch-menu">
+                      <button onClick={onCrunch}>Crunch => 72dpi</button>
+                      <button onClick={on2xCrunch}>2x Crunch</button>
+                      <div className="menu-separator"></div>
+                      <button 
+                        onClick={onUndo}
+                        disabled={!canUndo}
+                        title="Undo Last (Ctrl+Z)"
+                      >
+                        Undo Last
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Method dropdown - second */}
+                <div className="header-method-select">
+                  <select value={method} onChange={(e) => onMethodChange(e.target.value)} className="method-select-header">
+                    <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
+                    <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
+                  </select>
+                </div>
+
+                {/* Crop dropdown - third */}
                 <div 
                   className="crop-button-container"
                   onMouseEnter={() => setIsCropMenuHovered(true)}
@@ -274,35 +315,19 @@ function PixelationControls({
                       <button onClick={() => handleCropOptionClick('1:1')}>1:1 (Square)</button>
                       <button onClick={() => handleCropOptionClick('3:2')}>3:2 (Photo)</button>
                       <button onClick={() => handleCropOptionClick('4:3')}>4:3 (Traditional)</button>
+                      <div className="menu-separator"></div>
+                      <button 
+                        onClick={onUndo}
+                        disabled={!canUndo}
+                        title="Undo Last (Ctrl+Z)"
+                      >
+                        Undo Last
+                      </button>
                     </div>
                   )}
                 </div>
-                <button
-                  className="crunch-button"
-                  onClick={onCrunch}
-                  disabled={!hasUploadedFile}
-                  title="Converts to 72dpi"
-                >
-                  Crunch
-                </button>
-              </div>
-            )}
-            {showCropModal && originalFile && (
-              <CropPreviewModal
-                originalFile={originalFile}
-                aspectRatio={selectedAspectRatio}
-                onCrop={handleCropApply}
-                onCancel={handleCropCancel}
-              />
-            )}
-            {hasUploadedFile && (
-              <>
-                <div className="header-method-select">
-                  <select value={method} onChange={(e) => onMethodChange(e.target.value)} className="method-select-header">
-                    <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
-                    <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
-                  </select>
-                </div>
+
+                {/* px² input - fourth */}
                 <div className="header-px2-input">
                   <div className="px2-input-container-header">
                     <input
@@ -322,6 +347,14 @@ function PixelationControls({
                   </div>
                 </div>
               </>
+            )}
+            {showCropModal && originalFile && (
+              <CropPreviewModal
+                originalFile={originalFile}
+                aspectRatio={selectedAspectRatio}
+                onCrop={handleCropApply}
+                onCancel={handleCropCancel}
+              />
             )}
           </div>
           <div className="header-right">
@@ -380,7 +413,7 @@ function PixelationControls({
         {imageDimensions.width > 0 && (
           <div className="info-text">
             <small>
-              Image: {imageDimensions.width}×{imageDimensions.height} px
+              Original Image: {imageDimensions.width}×{imageDimensions.height} px
               <br />
               Pixel size: {pixelSize}×{pixelSize} (each pixel represents {pixelSize}×{pixelSize} original pixels)
               <br />

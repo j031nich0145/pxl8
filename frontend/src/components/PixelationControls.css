@@ -52,7 +52,8 @@ body.dark-mode .controls-header {
   flex-shrink: 0;
 }
 
-.crop-button-container {
+.crop-button-container,
+.crunch-button-container {
   position: relative;
 }
 
@@ -140,12 +141,90 @@ body.dark-mode .crop-menu button:hover {
   color: #e3f2fd;
 }
 
-.crop-menu button:not(:last-child) {
+.crop-menu button:not(:last-child),
+.crunch-menu button:not(:last-child) {
   border-bottom: 1px solid #e0e0e0;
 }
 
-body.dark-mode .crop-menu button:not(:last-child) {
+body.dark-mode .crop-menu button:not(:last-child),
+body.dark-mode .crunch-menu button:not(:last-child) {
   border-bottom-color: #404040;
+}
+
+.crop-menu button:disabled,
+.crunch-menu button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.crop-menu button:disabled:hover,
+.crunch-menu button:disabled:hover {
+  background: transparent;
+  color: inherit;
+}
+
+body.dark-mode .crop-menu button:disabled:hover,
+body.dark-mode .crunch-menu button:disabled:hover {
+  background: transparent;
+  color: inherit;
+}
+
+.menu-separator {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 4px 0;
+}
+
+body.dark-mode .menu-separator {
+  background: #404040;
+}
+
+.crunch-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0;
+  padding-top: 4px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.dark-mode .crunch-menu {
+  background: #2d2d2d;
+  border-color: #404040;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.crunch-menu button {
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #212121;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+body.dark-mode .crunch-menu button {
+  color: #e0e0e0;
+}
+
+.crunch-menu button:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #006064;
+}
+
+body.dark-mode .crunch-menu button:hover:not(:disabled) {
+  background: #404040;
+  color: #e3f2fd;
 }
 
 .header-method-select {
