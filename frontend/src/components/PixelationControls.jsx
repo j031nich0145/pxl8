@@ -276,7 +276,7 @@ function PixelationControls({
                   </button>
                   {isCrunchMenuHovered && (
                     <div className="crunch-menu">
-                      <button onClick={onCrunch}>Crunch => 72dpi</button>
+                      <button onClick={onCrunch}>Crunch =&gt; 72dpi</button>
                       <button onClick={on2xCrunch}>2x Crunch</button>
                       <div className="menu-separator"></div>
                       <button 
@@ -297,8 +297,21 @@ function PixelationControls({
                     <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
                   </select>
                 </div>
-
-                {/* Crop dropdown - third */}
+              </>
+            )}
+            {showCropModal && originalFile && (
+              <CropPreviewModal
+                originalFile={originalFile}
+                aspectRatio={selectedAspectRatio}
+                onCrop={handleCropApply}
+                onCancel={handleCropCancel}
+              />
+            )}
+          </div>
+          <div className="header-right">
+            {hasUploadedFile && (
+              <>
+                {/* Crop dropdown - first in right column */}
                 <div 
                   className="crop-button-container"
                   onMouseEnter={() => setIsCropMenuHovered(true)}
@@ -327,7 +340,7 @@ function PixelationControls({
                   )}
                 </div>
 
-                {/* px² input - fourth */}
+                {/* px² input - second in right column */}
                 <div className="header-px2-input">
                   <div className="px2-input-container-header">
                     <input
@@ -346,33 +359,18 @@ function PixelationControls({
                     <span className="px2-label-header">px²</span>
                   </div>
                 </div>
+
+                {/* Live Update toggle - third in right column */}
+                <label className="toggle-label">
+                  <span>Live Update</span>
+                  <input
+                    type="checkbox"
+                    checked={liveUpdate}
+                    onChange={(e) => onLiveUpdateChange(e.target.checked)}
+                    className="toggle-switch"
+                  />
+                </label>
               </>
-            )}
-            {showCropModal && originalFile && (
-              <CropPreviewModal
-                originalFile={originalFile}
-                aspectRatio={selectedAspectRatio}
-                onCrop={handleCropApply}
-                onCancel={handleCropCancel}
-              />
-            )}
-          </div>
-          <div className="header-right">
-            {hasUploadedFile && (
-              <label className="toggle-label">
-                <span>Live Update</span>
-                <input
-                  type="checkbox"
-                  checked={liveUpdate}
-                  onChange={(e) => onLiveUpdateChange(e.target.checked)}
-                  className="toggle-switch"
-                />
-              </label>
-            )}
-            {processedImageUrl && (
-              <button className="download-button" onClick={onDownload} title="Download">
-                ⬇️
-              </button>
             )}
           </div>
         </div>
@@ -415,17 +413,24 @@ function PixelationControls({
             <small>
               Original Image: {imageDimensions.width}×{imageDimensions.height} px
               <br />
-              Pixel size: {pixelSize}×{pixelSize} (each pixel represents {pixelSize}×{pixelSize} original pixels)
+              Pixel size: {pixelSize}×{pixelSize} (1px = {pixelSize}x{pixelSize}px)
               <br />
               Target size: {targetWidth}×{targetHeight} pixels
               {pixelSize === 1 && ' (no pixelation)'}
               {pixelSize >= 50 && ' (maximum pixelation)'}
             </small>
-            {onDarkModeChange && (
-              <button className="theme-toggle-info" onClick={() => onDarkModeChange(!darkMode)}>
-                {darkMode ? '☀️' : '🌙'}
-              </button>
-            )}
+            <div className="info-text-buttons">
+              {processedImageUrl && (
+                <button className="download-button-info" onClick={onDownload} title="Download">
+                  ⬇️
+                </button>
+              )}
+              {onDarkModeChange && (
+                <button className="theme-toggle-info" onClick={() => onDarkModeChange(!darkMode)} title="Light/Dark Mode">
+                  {darkMode ? '☀️' : '🌙'}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

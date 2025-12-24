@@ -23,18 +23,16 @@ body.dark-mode .controls-header {
 }
 
 .header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 15px;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
 .header-left {
   display: flex;
   align-items: center;
   gap: 15px;
-  flex: 1;
   flex-wrap: wrap;
 }
 
@@ -42,7 +40,7 @@ body.dark-mode .controls-header {
   display: flex;
   align-items: center;
   gap: 15px;
-  flex-shrink: 0;
+  justify-content: flex-start;
 }
 
 .crop-crunch-buttons {
@@ -56,6 +54,8 @@ body.dark-mode .controls-header {
 .crunch-button-container {
   position: relative;
 }
+
+/* Crop button container - no margin needed, positioned in grid right column */
 
 .crop-button,
 .crunch-button {
@@ -374,6 +374,7 @@ body.dark-mode .process-button-image:hover {
   color: #424242;
   cursor: pointer;
   transition: color 0.3s ease;
+  margin-left: auto;
 }
 
 body.dark-mode .toggle-label {
@@ -670,6 +671,15 @@ body.dark-mode .slider-labels-bottom {
   position: relative;
 }
 
+.info-text-buttons {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 body.dark-mode .info-text {
   background: #1e3a5f;
   color: #81d4fa;
@@ -677,12 +687,21 @@ body.dark-mode .info-text {
 
 .info-text small {
   font-size: 0.85rem;
+  text-align: center;
+  display: block;
 }
 
-.theme-toggle-info {
+.info-text-buttons {
   position: absolute;
   bottom: 8px;
   right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-text-buttons .download-button-info,
+.theme-toggle-info {
   background: rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
@@ -692,16 +711,19 @@ body.dark-mode .info-text {
   transition: all 0.3s ease;
 }
 
+body.dark-mode .info-text-buttons .download-button-info,
 body.dark-mode .theme-toggle-info {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.info-text-buttons .download-button-info:hover,
 .theme-toggle-info:hover {
   background: rgba(255, 255, 255, 0.5);
   transform: scale(1.1);
 }
 
+body.dark-mode .info-text-buttons .download-button-info:hover,
 body.dark-mode .theme-toggle-info:hover {
   background: rgba(0, 0, 0, 0.5);
 }
