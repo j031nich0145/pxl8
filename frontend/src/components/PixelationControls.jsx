@@ -293,8 +293,9 @@ function PixelationControls({
                 {/* Method dropdown - second */}
                 <div className="header-method-select">
                   <select value={method} onChange={(e) => onMethodChange(e.target.value)} className="method-select-header">
-                    <option value="average">Pixel Averaging - Averages colors within each block (Smoother)</option>
-                    <option value="nearest">Nearest Neighbor - Samples one point per block (Blocky)</option>
+                    <option value="average">Pixel Averaging - averages colors/block (smoothest)</option>
+                    <option value="spatial">Spatial Approx - closest pixel/position (blocky)</option>
+                    <option value="nearest">Nearest Neighbors - majority color/block (preserve colors)</option>
                   </select>
                 </div>
               </>

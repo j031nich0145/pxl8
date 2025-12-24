@@ -1,16 +1,20 @@
 # PXL8 - Image Pixelation Tool
 
-A free, open-source image pixelation and background removal tool that runs locally. Built with Python Flask backend and React frontend.
+A free, open-source image pixelation tool that runs locally. Built with Python Flask backend and React frontend.
 
 ## Features
 
-- **Pixelation**: Scale images down to as small as 25x25 pixels using two methods:
-  - **Nearest Neighbor**: Fast, blocky pixelation
-  - **Pixel Averaging**: Smoother, averaged pixelation
-- **Background Removal**: Optional edge detection and flood fill to remove backgrounds with adjustable sensitivity
-- **Processing Order**: Choose whether to pixelate first or remove background first
-- **Modern Web Interface**: Clean, responsive React-based UI
-- **Local Processing**: All processing happens on your machine - no data sent to external servers
+- **Pixelation**: Scale images down using three distinct methods:
+  - **Pixel Averaging**: Averages all colors within each block for smooth, blended results - the smoothest option
+  - **Spatial Approximation**: Samples the closest pixel by spatial position, creating blocky, retro-style pixelation
+  - **Nearest Neighbors**: Uses the majority (most frequent) color per block, preserving dominant colors while reducing noise
+- **Image Cropping**: Crop images with preset aspect ratios (1:1 Square, 3:2 Photo, 4:3 Traditional) with interactive preview
+- **Crunch Tool**: Normalize images to 72dpi or apply 2x pixelation for enhanced effects
+- **Undo Functionality**: Undo up to 3 previous operations using Ctrl+Z or the undo button
+- **Live Update**: Real-time preview of pixelation changes as you adjust settings
+- **Dark Mode**: Toggle between light and dark themes with persistent preference
+- **Modern Web Interface**: Clean, responsive React-based UI with intuitive controls
+- **Local Processing**: All processing happens client-side in your browser - no data sent to external servers
 
 ## Project Structure
 
@@ -86,20 +90,23 @@ The frontend will start on `http://localhost:3000` and automatically proxy API r
 
 ## Usage
 
-1. Start the backend server (see Backend Setup above)
+1. Start the backend server (see Backend Setup above) - *Note: The app runs entirely client-side, backend is optional*
 2. Start the frontend development server (see Frontend Setup above)
 3. Open your browser to `http://localhost:3000`
 4. Upload a JPG or PNG image (drag & drop or click to browse)
 5. Configure pixelation settings:
-   - Enable/disable pixelation
-   - Set target width and height (minimum 25x25)
-   - Choose pixelation method
-6. Optionally enable background removal:
-   - Toggle background removal
-   - Adjust sensitivity threshold
-7. Choose processing order (pixelate first or background removal first)
-8. Click "Process Image"
-9. Download your processed image
+   - Adjust the pixelation slider (px²) to control pixel size
+   - Choose pixelation method from the dropdown:
+     - **Pixel Averaging**: For smooth, blended results
+     - **Spatial Approximation**: For blocky, retro-style pixelation
+     - **Nearest Neighbors**: For preserving dominant colors
+   - Toggle "Live Update" for real-time preview
+6. Use additional tools:
+   - **Crop**: Select aspect ratio and interactively crop your image
+   - **Crunch**: Normalize to 72dpi or apply 2x pixelation
+   - **Undo**: Press Ctrl+Z or use the undo button to revert changes (up to 3 steps)
+7. Toggle dark/light mode using the theme button in the bottom-right corner
+8. Download your processed image using the download button
 
 ## API Endpoints
 
@@ -132,6 +139,8 @@ Process an image with pixelation and/or background removal.
   "process_order": "pixelate_first"
 }
 ```
+
+**Note**: `pixelation_method` can be `"average"`, `"spatial"`, or `"nearest"`.
 
 **Response**:
 ```json
@@ -187,6 +196,7 @@ npm run build
 
 The backend uses Flask with CORS enabled for development. Hot reload is enabled in debug mode.
 
+
 ### Frontend Development
 
 The frontend uses Vite for fast development with hot module replacement. The Vite dev server proxies API requests to the Flask backend.
@@ -194,6 +204,15 @@ The frontend uses Vite for fast development with hot module replacement. The Vit
 ## License
 
 This project is open source and available for free use and modification.
+
+## Commercial License
+
+A 5% royalty applies to use this software in any part for profit.
+See https://github.com/j031nich0145/j031nich0145/blob/main/LICENSING.md
+
+## Buy us Coffee
+
+https://github.com/j031nich0145/
 
 ## Contributing
 
