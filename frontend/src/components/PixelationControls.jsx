@@ -12,7 +12,28 @@ function PixelationControls({
   onDownload,
   onProcess,
   processedImageUrl,
+  onCrop,
+  onCrunch,
+  hasUploadedFile,
 }) {
+  const [showCropMenu, setShowCropMenu] = useState(false)
+  
+  // Close crop menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCropMenu && !event.target.closest('.crop-button-container')) {
+        setShowCropMenu(false)
+      }
+    }
+    
+    if (showCropMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [showCropMenu])
+  
   // Calculate pixel size from pixelation level
   // Maps to pixel block size (1x1 to 100x100) using exponential function
   // Note: level can be slightly above 10 to support direct pixel size inputs above ~50
@@ -223,10 +244,45 @@ function PixelationControls({
   // Convert pixel size to slider value for display
   const sliderValue = pixelSizeToSlider(pixelSize)
 
+  const handleCropClick = (aspectRatio) => {
+    if (onCrop) {
+      onCrop(aspectRatio)
+    }
+    setShowCropMenu(false)
+  }
+
   return (
     <div className="pixelation-controls">
       <div className="controls-header">
         <div className="header-row">
+          {hasUploadedFile && (
+            <div className="crop-crunch-buttons">
+              <div className="crop-button-container">
+                <button
+                  className="crop-button"
+                  onClick={() => setShowCropMenu(!showCropMenu)}
+                  disabled={!hasUploadedFile}
+                >
+                  Crop
+                </button>
+                {showCropMenu && (
+                  <div className="crop-menu">
+                    <button onClick={() => handleCropClick('1:1')}>1:1 (Square)</button>
+                    <button onClick={() => handleCropClick('3:2')}>3:2 (Photo)</button>
+                    <button onClick={() => handleCropClick('4:3')}>4:3 (Traditional)</button>
+                  </div>
+                )}
+              </div>
+              <button
+                className="crunch-button"
+                onClick={onCrunch}
+                disabled={!hasUploadedFile}
+                title="Converts to 72dpi"
+              >
+                Crunch
+              </button>
+            </div>
+          )}
           <label className="toggle-label">
             <input
               type="checkbox"

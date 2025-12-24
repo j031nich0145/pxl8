@@ -3,6 +3,7 @@ import ImageUpload from './components/ImageUpload'
 import PixelationControls from './components/PixelationControls'
 import ImagePreview from './components/ImagePreview'
 import { pixelateImage } from './utils/pixelation-client'
+import { cropImage, normalizeTo72dpi } from './utils/image-manipulation'
 import './App.css'
 
 function App() {
@@ -54,6 +55,58 @@ function App() {
     setProcessedImageUrl(null)
     setImageDimensions({ width: 0, height: 0 })
     setError(null)
+  }
+
+  const handleCrop = async (aspectRatio) => {
+    if (!uploadedFile) {
+      setError('Please upload an image first')
+      return
+    }
+
+    try {
+      setError(null)
+      const croppedFile = await cropImage(uploadedFile, aspectRatio)
+      
+      // Update uploaded file and reset processed image
+      setUploadedFile(croppedFile)
+      setProcessedImage(null)
+      setProcessedImageUrl(null)
+      
+      // Get new image dimensions
+      const img = new Image()
+      img.onload = () => {
+        setImageDimensions({ width: img.width, height: img.height })
+      }
+      img.src = URL.createObjectURL(croppedFile)
+    } catch (err) {
+      setError(err.message || 'Crop failed')
+    }
+  }
+
+  const handleCrunch = async () => {
+    if (!uploadedFile) {
+      setError('Please upload an image first')
+      return
+    }
+
+    try {
+      setError(null)
+      const normalizedFile = await normalizeTo72dpi(uploadedFile)
+      
+      // Update uploaded file and reset processed image
+      setUploadedFile(normalizedFile)
+      setProcessedImage(null)
+      setProcessedImageUrl(null)
+      
+      // Get new image dimensions
+      const img = new Image()
+      img.onload = () => {
+        setImageDimensions({ width: img.width, height: img.height })
+      }
+      img.src = URL.createObjectURL(normalizedFile)
+    } catch (err) {
+      setError(err.message || 'Crunch failed')
+    }
   }
 
   // Calculate pixel size from pixelation level
@@ -255,6 +308,9 @@ function App() {
                 onDownload={handleDownload}
                 onProcess={handleProcess}
                 processedImageUrl={processedImageUrl}
+                onCrop={handleCrop}
+                onCrunch={handleCrunch}
+                hasUploadedFile={!!uploadedFile}
               />
             </div>
           </>
