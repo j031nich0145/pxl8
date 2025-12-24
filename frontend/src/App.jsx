@@ -451,7 +451,7 @@ function App() {
         <span className="footer-separator">•</span>
         <a href="#" className="footer-link">batch pxl8</a>
         <span className="footer-separator">•</span>
-        <a href="#" className="footer-link">Commercial Use License</a>
+        <a href="https://github.com/j031nich0145/j031nich0145/blob/main/LICENSING.md" target="_blank" rel="noopener noreferrer" className="footer-link">Commercial Use License</a>
         <span className="footer-separator">•</span>
         <a href="https://github.com/j031nich0145/j031nich0145/" target="_blank" rel="noopener noreferrer" className="footer-link">Buy Us Coffee</a>
       </footer>
