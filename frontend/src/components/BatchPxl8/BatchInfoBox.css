@@ -1,0 +1,137 @@
+.batch-info-box {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 40px);
+  max-width: 1200px;
+  margin-top: 10px;
+  padding: 10px;
+  background: #e0f7fa;
+  border-radius: 6px;
+  color: #00838f;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark-mode .batch-info-box {
+  background: #1e3a5f;
+  color: #81d4fa;
+}
+
+.batch-info-box small {
+  font-size: 0.85rem;
+  text-align: center;
+  display: block;
+}
+
+.info-text-nav-buttons {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-text-buttons {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-text-buttons .upload-button-info,
+.info-text-buttons .download-button-info,
+.info-text-buttons .theme-toggle-info,
+.info-text-buttons .process-all-button-info,
+.info-text-buttons .clear-button-info {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.info-text-buttons .process-all-button-info,
+.info-text-buttons .clear-button-info {
+  font-size: 0.85rem;
+  padding: 4px 10px;
+  font-weight: 600;
+}
+
+body.dark-mode .info-text-buttons .upload-button-info,
+body.dark-mode .info-text-buttons .download-button-info,
+body.dark-mode .info-text-buttons .theme-toggle-info,
+body.dark-mode .info-text-buttons .process-all-button-info,
+body.dark-mode .info-text-buttons .clear-button-info {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.info-text-buttons .upload-button-info:hover,
+.info-text-buttons .download-button-info:hover:not(.disabled),
+.info-text-buttons .theme-toggle-info:hover,
+.info-text-buttons .process-all-button-info:hover,
+.info-text-buttons .clear-button-info:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
+body.dark-mode .info-text-buttons .upload-button-info:hover,
+body.dark-mode .info-text-buttons .download-button-info:hover:not(.disabled),
+body.dark-mode .info-text-buttons .theme-toggle-info:hover,
+body.dark-mode .info-text-buttons .process-all-button-info:hover,
+body.dark-mode .info-text-buttons .clear-button-info:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.info-text-buttons .download-button-info.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nav-mode-button {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #00838f;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+body.dark-mode .nav-mode-button {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #81d4fa;
+}
+
+.nav-mode-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  color: #006064;
+}
+
+body.dark-mode .nav-mode-button:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: #90caf9;
+}
+
+.nav-mode-button.active {
+  background: rgba(255, 255, 255, 0.6);
+  color: #006064;
+  font-weight: 700;
+}
+
+body.dark-mode .nav-mode-button.active {
+  background: rgba(0, 0, 0, 0.5);
+  color: #90caf9;
+}

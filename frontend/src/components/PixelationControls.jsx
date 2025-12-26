@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import CropPreviewModal from './CropPreviewModal'
 import './PixelationControls.css'
 
@@ -27,6 +28,7 @@ function PixelationControls({
   const [selectedAspectRatio, setSelectedAspectRatio] = useState(null)
   const [isCropMenuHovered, setIsCropMenuHovered] = useState(false)
   const [isCrunchMenuHovered, setIsCrunchMenuHovered] = useState(false)
+  const location = useLocation()
   
   // Calculate pixel size from pixelation level
   // Maps to pixel block size (1x1 to 100x100) using exponential function
@@ -420,6 +422,22 @@ function PixelationControls({
               {pixelSize === 1 && ' (no pixelation)'}
               {pixelSize >= 50 && ' (maximum pixelation)'}
             </small>
+            <div className="info-text-nav-buttons">
+              <Link 
+                to="/" 
+                className={`nav-mode-button ${location.pathname === '/' ? 'active' : ''}`}
+                title="Single Mode"
+              >
+                Single
+              </Link>
+              <Link 
+                to="/batch" 
+                className={`nav-mode-button ${location.pathname === '/batch' ? 'active' : ''}`}
+                title="Batch Mode"
+              >
+                Batch
+              </Link>
+            </div>
             <div className="info-text-buttons">
               {processedImageUrl && (
                 <button className="download-button-info" onClick={onDownload} title="Download">

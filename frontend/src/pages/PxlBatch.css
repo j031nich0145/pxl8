@@ -1,0 +1,141 @@
+.pxl-batch {
+  background: #fafafa;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s ease;
+}
+
+.pxl-batch.dark-mode {
+  background: #252525;
+}
+
+.batch-content {
+  padding: 20px;
+  padding-bottom: 180px; /* Space for fixed info box and footer */
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.process-all-button {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #4dd0e1 0%, #26c6da 100%);
+  color: #006064;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s ease;
+}
+
+.pxl-batch.dark-mode .process-all-button {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: #e3f2fd;
+}
+
+.process-all-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(77, 208, 225, 0.4);
+}
+
+.pxl-batch.dark-mode .process-all-button:hover:not(:disabled) {
+  box-shadow: 0 5px 15px rgba(25, 118, 210, 0.4);
+}
+
+.process-all-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.clear-button {
+  padding: 12px 24px;
+  background: #ffffff;
+  color: #616161;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.pxl-batch.dark-mode .clear-button {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #b0b0b0;
+}
+
+.clear-button:hover {
+  background: #f5f5f5;
+  border-color: #4dd0e1;
+  color: #006064;
+}
+
+.pxl-batch.dark-mode .clear-button:hover {
+  background: #404040;
+  border-color: #1976d2;
+  color: #e3f2fd;
+}
+
+.pxl-batch .app-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 20px;
+  text-align: center;
+  background: #ffffff;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.85rem;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+  z-index: 50;
+}
+
+.pxl-batch.dark-mode .app-footer {
+  background: #2d2d2d;
+  border-top-color: #404040;
+}
+
+.pxl-batch .footer-link {
+  color: #00838f;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.pxl-batch.dark-mode .footer-link {
+  color: #64b5f6;
+}
+
+.pxl-batch .footer-link:hover {
+  color: #006064;
+  text-decoration: underline;
+}
+
+.pxl-batch.dark-mode .footer-link:hover {
+  color: #90caf9;
+}
+
+.pxl-batch .footer-separator {
+  margin: 0 10px;
+  color: #9e9e9e;
+}
+
+.pxl-batch.dark-mode .footer-separator {
+  color: #616161;
+}
+
+

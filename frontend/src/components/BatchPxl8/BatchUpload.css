@@ -1,0 +1,156 @@
+.batch-upload {
+  margin-bottom: 20px;
+}
+
+.upload-area {
+  border: 2px dashed #b0bec5;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+body.dark-mode .upload-area {
+  background: #2d2d2d;
+  border-color: #546e7a;
+}
+
+.upload-area.drag-active {
+  border-color: #4dd0e1;
+  background: #e0f7fa;
+}
+
+body.dark-mode .upload-area.drag-active {
+  border-color: #1976d2;
+  background: #1e3a5f;
+}
+
+.upload-area.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-label {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-area.disabled .upload-label {
+  cursor: not-allowed;
+}
+
+.upload-icon {
+  font-size: 3rem;
+}
+
+.upload-text {
+  color: #616161;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .upload-text {
+  color: #b0b0b0;
+}
+
+.file-list {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+body.dark-mode .file-item {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+.file-thumbnail {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.file-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-name {
+  color: #212121;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .file-name {
+  color: #e0e0e0;
+}
+
+.file-size {
+  color: #757575;
+  font-size: 0.85rem;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .file-size {
+  color: #9e9e9e;
+}
+
+.remove-file-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  color: #c62828;
+  font-size: 20px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+body.dark-mode .remove-file-button {
+  background: #4a1f1f;
+  border-color: #6a2f2f;
+  color: #ef5350;
+}
+
+.remove-file-button:hover:not(:disabled) {
+  background: #ffcdd2;
+  transform: scale(1.1);
+}
+
+body.dark-mode .remove-file-button:hover:not(:disabled) {
+  background: #6a2f2f;
+}
+
+.remove-file-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
