@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import BatchThumbnailsGrid from '../components/BatchPxl8/BatchThumbnailsGrid'
 import BatchInfoBox from '../components/BatchPxl8/BatchInfoBox'
-import BatchProgress from '../components/BatchPxl8/BatchProgress'
-import BatchResults from '../components/BatchPxl8/BatchResults'
+import BatchPreviewInfoCard from '../components/BatchPxl8/BatchPreviewInfoCard'
 import { getSettings } from '../utils/settings-manager'
 import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages } from '../utils/image-state-manager'
 import { pixelateImage } from '../utils/pixelation-client'
@@ -11,18 +11,19 @@ import JSZip from 'jszip'
 import './PxlBatch.css'
 
 function PxlBatch() {
+  const navigate = useNavigate()
   const [files, setFiles] = useState([])
   const [pixelatedImageUrl, setPixelatedImageUrl] = useState(null)
   const [pixelatedImageInfo, setPixelatedImageInfo] = useState(null)
   const [settings, setSettings] = useState(null)
   const [processing, setProcessing] = useState(false)
   const [results, setResults] = useState([])
+  const [processedImageUrls, setProcessedImageUrls] = useState({})
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('pxl8_dark_mode')
     return saved === 'true'
   })
   const fileInputRef = useRef(null)
-  const targetImageInputRef = useRef(null)
 
   // Load settings on mount
   useEffect(() => {
@@ -132,168 +133,13 @@ function PxlBatch() {
     })
   }
 
-  // Handle target image change (X button click)
+  // Handle target image change (X button click) - navigate to single page
   const handleTargetImageChange = () => {
-    if (targetImageInputRef.current) {
-      targetImageInputRef.current.click()
-    }
+    navigate('/')
   }
 
-  // Handle target image file selection
-  const handleTargetImageFileChange = async (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0]
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png']
-      
-      if (!validTypes.includes(file.type)) {
-        alert('Please select a JPG or PNG image file')
-        e.target.value = ''
-        return
-      }
-
-      if (!settings) {
-        alert('Settings not loaded yet. Please wait.')
-        e.target.value = ''
-        return
-      }
-
-      try {
-        // Get image dimensions
-        const img = new Image()
-        const imgUrl = URL.createObjectURL(file)
-        
-        await new Promise((resolve, reject) => {
-          img.onload = async () => {
-            const dimensions = { width: img.width, height: img.height }
-            
-            // Save original file for single page
-            saveMainImage(file, dimensions)
-            
-            // Calculate pixelation settings
-            const pixelSize = calculatePixelSize(settings.pixelationLevel)
-            const targetWidth = Math.max(1, Math.floor(img.width / pixelSize))
-            const targetHeight = Math.max(1, Math.floor(img.height / pixelSize))
-            const multiplier = 1.0 + (pixelSize / 100) * 2.0
-            
-            // Process image to create pixelated version
-            try {
-              const blob = await pixelateImage(
-                file,
-                targetWidth,
-                targetHeight,
-                settings.pixelationMethod,
-                multiplier,
-                () => {} // No progress callback needed
-              )
-              
-              const blobUrl = URL.createObjectURL(blob)
-              
-              // Save pixelated image and info
-              const imageInfo = {
-                originalDimensions: dimensions,
-                pixelSize: pixelSize,
-                targetDimensions: { width: targetWidth, height: targetHeight },
-                pixelationMethod: settings.pixelationMethod
-              }
-              
-              await savePixelatedImage(blobUrl, imageInfo)
-              
-              // Update display
-              setPixelatedImageUrl(blobUrl)
-              setPixelatedImageInfo(imageInfo)
-              
-              URL.revokeObjectURL(imgUrl)
-              resolve()
-            } catch (error) {
-              URL.revokeObjectURL(imgUrl)
-              reject(error)
-            }
-          }
-          img.onerror = () => {
-            URL.revokeObjectURL(imgUrl)
-            reject(new Error('Failed to load image'))
-          }
-          img.src = imgUrl
-        })
-      } catch (error) {
-        console.error('Failed to set target image:', error)
-        alert('Failed to process target image. Please try again.')
-      }
-      
-      // Reset input
-      e.target.value = ''
-    }
-  }
-
-  // Set thumbnail as target image
-  const handleSetAsTarget = async (file, index) => {
-    if (!settings) return
-
-    try {
-      // Get image dimensions
-      const img = new Image()
-      const imgUrl = URL.createObjectURL(file)
-      
-      await new Promise((resolve, reject) => {
-        img.onload = async () => {
-          const dimensions = { width: img.width, height: img.height }
-          
-          // Save original file for single page
-          saveMainImage(file, dimensions)
-          
-          // Calculate pixelation settings
-          const pixelSize = calculatePixelSize(settings.pixelationLevel)
-          const targetWidth = Math.max(1, Math.floor(img.width / pixelSize))
-          const targetHeight = Math.max(1, Math.floor(img.height / pixelSize))
-          const multiplier = 1.0 + (pixelSize / 100) * 2.0
-          
-          // Process image to create pixelated version
-          try {
-            const blob = await pixelateImage(
-              file,
-              targetWidth,
-              targetHeight,
-              settings.pixelationMethod,
-              multiplier,
-              () => {} // No progress callback needed
-            )
-            
-            const blobUrl = URL.createObjectURL(blob)
-            
-            // Save pixelated image and info
-            const imageInfo = {
-              originalDimensions: dimensions,
-              pixelSize: pixelSize,
-              targetDimensions: { width: targetWidth, height: targetHeight },
-              pixelationMethod: settings.pixelationMethod
-            }
-            
-            await savePixelatedImage(blobUrl, imageInfo)
-            
-            // Update display
-            setPixelatedImageUrl(blobUrl)
-            setPixelatedImageInfo(imageInfo)
-            
-            URL.revokeObjectURL(imgUrl)
-            resolve()
-          } catch (error) {
-            URL.revokeObjectURL(imgUrl)
-            reject(error)
-          }
-        }
-        img.onerror = () => {
-          URL.revokeObjectURL(imgUrl)
-          reject(new Error('Failed to load image'))
-        }
-        img.src = imgUrl
-      })
-    } catch (error) {
-      console.error('Failed to set target image:', error)
-    }
-  }
-
-  // Process all images
-  const handleProcessAll = async () => {
+  // Preview all images (process and replace thumbnails in-place)
+  const handlePreviewAll = async () => {
     if (files.length === 0 || !settings || !pixelatedImageInfo) return
     
     setProcessing(true)
@@ -306,7 +152,7 @@ function PxlBatch() {
     const initialResults = files.map(file => ({
       file,
       progress: 0,
-      status: 'pending',
+      status: 'processing',
       processedBlob: null,
       error: null
     }))
@@ -377,6 +223,7 @@ function PxlBatch() {
                   })
                 }
               ).then(blob => {
+                const blobUrl = URL.createObjectURL(blob)
                 setResults(prev => {
                   const updated = [...prev]
                   updated[i] = {
@@ -387,6 +234,11 @@ function PxlBatch() {
                   }
                   return updated
                 })
+                // Store processed image URL for in-place replacement
+                setProcessedImageUrls(prev => ({
+                  ...prev,
+                  [i]: blobUrl
+                }))
                 URL.revokeObjectURL(imgUrl)
                 resolve()
               }).catch(error => {
@@ -528,7 +380,18 @@ function PxlBatch() {
 
   const handleClearResults = () => {
     setResults([])
+    // Revoke processed image URLs and clear them
+    Object.values(processedImageUrls).forEach(url => {
+      URL.revokeObjectURL(url)
+    })
+    setProcessedImageUrls({})
     // Only clear results, keep batch images loaded
+  }
+
+  // Placeholder for batch crop functionality
+  const handleBatchCrop = () => {
+    // TODO: Implement batch crop functionality
+    console.log('Batch Crop functionality coming soon')
   }
 
   const completedResults = results.filter(r => r.status === 'completed')
@@ -546,51 +409,41 @@ function PxlBatch() {
           style={{ display: 'none' }}
         />
         
-        {/* Hidden file input for target image */}
-        <input
-          type="file"
-          ref={targetImageInputRef}
-          accept="image/jpeg,image/jpg,image/png"
-          onChange={handleTargetImageFileChange}
-          style={{ display: 'none' }}
-        />
-
         {/* Batch Thumbnails Grid (includes target image as first item) */}
         <BatchThumbnailsGrid 
           targetImageUrl={pixelatedImageUrl}
           files={files} 
           onRemove={handleRemoveFile}
-          onSetAsTarget={handleSetAsTarget}
           onUploadClick={handleUploadClick}
           onTargetImageChange={handleTargetImageChange}
           disabled={processing}
+          results={results}
+          processedImageUrls={processedImageUrls}
+          previewInfoCard={
+            results.length > 0 && !processing && completedResults.length > 0 ? (
+              <BatchPreviewInfoCard
+                results={results}
+                pixelatedImageInfo={pixelatedImageInfo}
+                onClear={handleClearResults}
+                onDownloadZip={handleDownloadZip}
+              />
+            ) : null
+          }
         />
-
-        {/* Progress */}
-        {processing && (
-          <BatchProgress results={results} />
-        )}
-
-        {/* Results */}
-        {results.length > 0 && !processing && (
-          <BatchResults 
-            results={results} 
-            pixelatedImageInfo={pixelatedImageInfo}
-            onClear={handleClearResults}
-            onDownloadZip={handleDownloadZip}
-          />
-        )}
 
         {/* Blue Info Box */}
         <BatchInfoBox
           mainImage={pixelatedImageUrl ? true : false}
           mainImageDimensions={pixelatedImageInfo?.originalDimensions || { width: 0, height: 0 }}
+          targetDimensions={pixelatedImageInfo?.targetDimensions || { width: 0, height: 0 }}
+          pixelSize={pixelatedImageInfo?.pixelSize || 0}
           batchCount={files.length}
           onUpload={handleUploadClick}
           onDownload={handleDownloadZip}
-          onProcessAll={handleProcessAll}
+          onProcessAll={handlePreviewAll}
+          onBatchCrop={handleBatchCrop}
           onClear={handleClear}
-          showProcessButtons={files.length > 0 && !processing && results.length === 0}
+          showProcessButtons={files.length > 0 && !processing}
           canDownload={completedResults.length > 0}
           darkMode={darkMode}
           onDarkModeChange={setDarkMode}

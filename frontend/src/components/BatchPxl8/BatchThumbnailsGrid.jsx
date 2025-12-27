@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './BatchThumbnailsGrid.css'
 
-function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onSetAsTarget, onUploadClick, onTargetImageChange, disabled }) {
+function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onUploadClick, onTargetImageChange, disabled, results, processedImageUrls, previewInfoCard }) {
   const [urls, setUrls] = useState({})
 
   useEffect(() => {
@@ -36,7 +36,7 @@ function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onSetAsTarget, o
                   className="remove-thumbnail-button"
                   onClick={onTargetImageChange}
                   disabled={disabled}
-                  title="Change Target Image"
+                  title="Adjust Target Image"
                 >
                   ×
                 </button>
@@ -56,26 +56,23 @@ function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onSetAsTarget, o
         )}
 
         {/* Batch Thumbnails */}
-        {files && files.map((file, index) => (
-          <div key={index} className="thumbnail-item" title={file.name}>
-            {urls[index] && (
+        {files && files.map((file, index) => {
+          // Use processed image URL if available, otherwise use original
+          const imageUrl = processedImageUrls && processedImageUrls[index] 
+            ? processedImageUrls[index] 
+            : urls[index]
+          const isProcessed = processedImageUrls && processedImageUrls[index]
+          
+          return (
+          <div key={index} className={`thumbnail-item ${isProcessed ? 'thumbnail-processed' : ''}`} title={file.name}>
+            {imageUrl && (
               <img 
-                src={urls[index]} 
+                src={imageUrl} 
                 alt={file.name}
                 className="thumbnail-image"
               />
             )}
             <div className="thumbnail-overlay">
-              {onSetAsTarget && (
-                <button
-                  className="set-target-button"
-                  onClick={() => onSetAsTarget(file, index)}
-                  disabled={disabled}
-                  title="Set as Target Image"
-                >
-                  ✓
-                </button>
-              )}
               <button
                 className="remove-thumbnail-button"
                 onClick={() => onRemove(index)}
@@ -85,8 +82,21 @@ function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onSetAsTarget, o
                 ×
               </button>
             </div>
+            {/* Progress bar overlay */}
+            {results && results[index] && results[index].status === 'processing' && (
+              <div className="thumbnail-progress-overlay">
+                <div 
+                  className="thumbnail-progress-bar"
+                  style={{ width: `${results[index].progress || 0}%` }}
+                />
+              </div>
+            )}
           </div>
-        ))}
+          )
+        })}
+        
+        {/* Floating Preview Info Card - appears inline with thumbnails */}
+        {previewInfoCard}
       </div>
     </div>
   )

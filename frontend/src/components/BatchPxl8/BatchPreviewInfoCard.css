@@ -1,0 +1,80 @@
+.batch-preview-info-card {
+  position: relative;
+  width: calc(100% - 40px);
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 20px;
+  padding: 10px;
+  background: #e0f7fa;
+  border-radius: 6px;
+  color: #00838f;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  grid-column: 1 / -1;
+}
+
+body.dark-mode .batch-preview-info-card {
+  background: #1e3a5f;
+  color: #81d4fa;
+}
+
+.batch-preview-info-card small {
+  font-size: 0.85rem;
+  text-align: center;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-preview-info-card small strong {
+  font-weight: 600;
+}
+
+.preview-info-buttons {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-all-button,
+.clear-results-button {
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #00838f;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+body.dark-mode .download-all-button,
+body.dark-mode .clear-results-button {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #81d4fa;
+}
+
+.download-all-button:hover:not(:disabled),
+.clear-results-button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  color: #006064;
+}
+
+body.dark-mode .download-all-button:hover:not(:disabled),
+body.dark-mode .clear-results-button:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: #90caf9;
+}
+
+.download-all-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+

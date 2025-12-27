@@ -402,7 +402,7 @@ function Pxl8() {
       setProcessing(false)
       setProcessingProgress(0)
     }
-  }, [uploadedFile, pixelationLevel, pixelationMethod, imageDimensions, processedImageUrl])
+  }, [uploadedFile, pixelationLevel, pixelationMethod, imageDimensions, cropState, crunchCount])
 
   // Debounced auto-process for live update
   const debounceTimerRef = useRef(null)
@@ -425,7 +425,7 @@ function Pxl8() {
         }
       }
     }
-  }, [liveUpdate, pixelationLevel, pixelationMethod, uploadedFile, handleProcess, processing])
+  }, [liveUpdate, pixelationLevel, pixelationMethod, uploadedFile, handleProcess, processing, cropState, crunchCount])
 
   // Save pixelated image when processedImageUrl changes (for batch page)
   useEffect(() => {

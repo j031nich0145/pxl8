@@ -45,6 +45,7 @@ body.dark-mode .batch-info-box {
 .info-text-buttons .upload-button-info,
 .info-text-buttons .download-button-info,
 .info-text-buttons .theme-toggle-info,
+.info-text-buttons .batch-crop-button-info,
 .info-text-buttons .process-all-button-info,
 .info-text-buttons .clear-button-info {
   background: rgba(255, 255, 255, 0.3);
@@ -62,6 +63,7 @@ body.dark-mode .batch-info-box {
   flex-shrink: 0;
 }
 
+body.dark-mode .info-text-buttons .batch-crop-button-info,
 body.dark-mode .info-text-buttons .process-all-button-info,
 body.dark-mode .info-text-buttons .clear-button-info {
   background: rgba(0, 0, 0, 0.3);
@@ -69,6 +71,7 @@ body.dark-mode .info-text-buttons .clear-button-info {
   color: #81d4fa;
 }
 
+.info-text-buttons .batch-crop-button-info:hover,
 .info-text-buttons .process-all-button-info:hover,
 .info-text-buttons .clear-button-info:hover {
   background: rgba(255, 255, 255, 0.5);
@@ -76,6 +79,7 @@ body.dark-mode .info-text-buttons .clear-button-info {
   color: #006064;
 }
 
+body.dark-mode .info-text-buttons .batch-crop-button-info:hover,
 body.dark-mode .info-text-buttons .process-all-button-info:hover,
 body.dark-mode .info-text-buttons .clear-button-info:hover {
   background: rgba(0, 0, 0, 0.5);

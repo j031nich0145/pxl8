@@ -4,10 +4,13 @@ import './BatchInfoBox.css'
 function BatchInfoBox({ 
   mainImage, 
   mainImageDimensions,
+  targetDimensions,
+  pixelSize,
   batchCount, 
   onUpload, 
   onDownload,
   onProcessAll,
+  onBatchCrop,
   onClear,
   showProcessButtons,
   canDownload,
@@ -19,11 +22,11 @@ function BatchInfoBox({
   return (
     <div className="batch-info-box">
       <small>
-        {mainImage ? (
+        {mainImage && targetDimensions && pixelSize ? (
           <>
-            Target Image: {mainImageDimensions?.width || 0}×{mainImageDimensions?.height || 0} px
+            Processed Image: {mainImageDimensions?.width || 0}×{mainImageDimensions?.height || 0} px
             <br />
-            Batch Images: {batchCount}
+            Target size: {targetDimensions.width || 0}×{targetDimensions.height || 0} pixels (Pixel size: {pixelSize}×{pixelSize})
           </>
         ) : (
           <>No target image loaded. Upload an image in Single Mode first.</>
@@ -49,11 +52,18 @@ function BatchInfoBox({
         {showProcessButtons && (
           <>
             <button 
+              className="batch-crop-button-info"
+              onClick={onBatchCrop}
+              title="Batch Crop (coming soon)"
+            >
+              Batch Crop
+            </button>
+            <button 
               className="process-all-button-info"
               onClick={onProcessAll}
-              title={`Process All (${batchCount} ${batchCount === 1 ? 'image' : 'images'})`}
+              title={`Preview All (${batchCount} ${batchCount === 1 ? 'image' : 'images'})`}
             >
-              Process All
+              Preview All
             </button>
             <button 
               className="clear-button-info"

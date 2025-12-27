@@ -416,11 +416,7 @@ function PixelationControls({
             <small>
               Original Image: {imageDimensions.width}×{imageDimensions.height} px
               <br />
-              Pixel size: {pixelSize}×{pixelSize} (1px = {pixelSize}x{pixelSize}px)
-              <br />
-              Target size: {targetWidth}×{targetHeight} pixels
-              {pixelSize === 1 && ' (no pixelation)'}
-              {pixelSize >= 50 && ' (maximum pixelation)'}
+              Target size: {targetWidth}×{targetHeight} pixels (Pixel size: {pixelSize}×{pixelSize})
             </small>
             <div className="info-text-nav-buttons">
               <Link 
