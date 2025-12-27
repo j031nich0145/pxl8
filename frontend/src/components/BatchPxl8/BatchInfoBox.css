@@ -11,6 +11,7 @@
   border-radius: 6px;
   color: #00838f;
   transition: background-color 0.3s ease, color 0.3s ease;
+  z-index: 100;
 }
 
 body.dark-mode .batch-info-box {

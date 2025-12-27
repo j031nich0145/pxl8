@@ -24,7 +24,7 @@ function BatchInfoBox({
       <small>
         {mainImage && targetDimensions && pixelSize ? (
           <>
-            Processed Image: {mainImageDimensions?.width || 0}×{mainImageDimensions?.height || 0} px
+            Target Image: {mainImageDimensions?.width || 0}×{mainImageDimensions?.height || 0} px
             <br />
             Target size: {targetDimensions.width || 0}×{targetDimensions.height || 0} pixels (Pixel size: {pixelSize}×{pixelSize})
           </>

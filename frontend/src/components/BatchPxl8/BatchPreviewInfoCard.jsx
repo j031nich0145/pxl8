@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './BatchPreviewInfoCard.css'
 
 function BatchPreviewInfoCard({ results, pixelatedImageInfo, onClear, onDownloadZip }) {
   const [downloading, setDownloading] = useState(false)
+  const cardRef = useRef(null)
 
   // Method label mapping
   const methodNames = {
@@ -18,6 +19,47 @@ function BatchPreviewInfoCard({ results, pixelatedImageInfo, onClear, onDownload
     ? (methodNames[pixelatedImageInfo.pixelationMethod] || pixelatedImageInfo.pixelationMethod)
     : 'unknown'
 
+  // Scroll card into view when processing completes
+  useEffect(() => {
+    if (completedResults.length > 0 && cardRef.current) {
+      setTimeout(() => {
+        const card = cardRef.current
+        if (!card) return
+        
+        // Find the scrollable parent container (.batch-content)
+        let scrollContainer = card.parentElement
+        while (scrollContainer && !scrollContainer.classList.contains('batch-content')) {
+          scrollContainer = scrollContainer.parentElement
+        }
+        
+        if (scrollContainer) {
+          const cardRect = card.getBoundingClientRect()
+          const containerRect = scrollContainer.getBoundingClientRect()
+          const infoBoxHeight = 80 // Height of fixed info box (including padding)
+          const viewportHeight = window.innerHeight
+          const cardBottom = cardRect.bottom
+          const infoBoxTop = viewportHeight - infoBoxHeight
+          
+          // If card is below or overlapping with info box area, scroll it up
+          if (cardBottom > infoBoxTop - 20) {
+            const scrollAmount = cardBottom - infoBoxTop + 20 // 20px padding above info box
+            scrollContainer.scrollBy({
+              top: scrollAmount,
+              behavior: 'smooth'
+            })
+          }
+        } else {
+          // Fallback to scrollIntoView if container not found
+          card.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          })
+        }
+      }, 300)
+    }
+  }, [completedResults.length])
+
   const downloadAll = async () => {
     if (onDownloadZip) {
       setDownloading(true)
@@ -32,13 +74,11 @@ function BatchPreviewInfoCard({ results, pixelatedImageInfo, onClear, onDownload
   if (completedResults.length === 0) return null
 
   return (
-    <div className="batch-preview-info-card">
+    <div className="batch-preview-info-card" ref={cardRef}>
       <small>
         <strong>Process Complete: ✓ {completedResults.length} successful</strong>
-        {' • '}
-        Method: {methodLabel}
         <br />
-        Image Size: {pixelatedImageInfo?.originalDimensions?.width || 0}×{pixelatedImageInfo?.originalDimensions?.height || 0} px • Pixel Size: {pixelatedImageInfo?.pixelSize || 0}×{pixelatedImageInfo?.pixelSize || 0} px
+        Method: {methodLabel}
       </small>
       <div className="preview-info-buttons">
         <button 
