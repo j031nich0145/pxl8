@@ -300,6 +300,7 @@ function PxlBatch() {
     setResults([])
     
     const crunchCount = pixelatedImageInfo.crunchCount || 0
+    console.log('Processing batch with crunchCount:', crunchCount) // Debug log
     
     // Initialize results array
     const initialResults = files.map(file => ({
@@ -329,7 +330,8 @@ function PxlBatch() {
               let finalHeight = img.height
               
               if (crunchCount > 0) {
-                processedFile = file
+                console.log(`Applying ${crunchCount}x crunch to image ${i + 1}`) // Debug log
+                // Apply crunch operations sequentially
                 for (let j = 0; j < crunchCount; j++) {
                   processedFile = await normalizeTo72dpi(processedFile)
                 }
@@ -340,10 +342,12 @@ function PxlBatch() {
                   crunchedImg.onload = () => {
                     finalWidth = crunchedImg.width
                     finalHeight = crunchedImg.height
+                    console.log(`After crunch: ${finalWidth}x${finalHeight}`) // Debug log
                     URL.revokeObjectURL(crunchedImgUrl)
                     resolveCrunched()
                   }
                   crunchedImg.onerror = () => {
+                    console.error('Failed to load crunched image') // Debug log
                     URL.revokeObjectURL(crunchedImgUrl)
                     resolveCrunched()
                   }
@@ -451,7 +455,13 @@ function PxlBatch() {
   const handleDownloadZip = async () => {
     const completedResults = results.filter(r => r.status === 'completed' && r.processedBlob)
     
-    if (completedResults.length === 0) return
+    console.log('handleDownloadZip called, completedResults:', completedResults.length) // Debug log
+    
+    if (completedResults.length === 0) {
+      console.warn('No completed results to download')
+      alert('No processed images available to download. Please process images first.')
+      return
+    }
     
     try {
       const zip = new JSZip()
@@ -460,6 +470,8 @@ function PxlBatch() {
       completedResults.forEach((result) => {
         zip.file(`pixelated_${result.file.name}`, result.processedBlob)
       })
+      
+      console.log(`Creating zip with ${completedResults.length} images`) // Debug log
       
       // Generate zip file
       const zipBlob = await zip.generateAsync({ type: 'blob' })
@@ -473,6 +485,8 @@ function PxlBatch() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      
+      console.log('Zip file downloaded successfully') // Debug log
     } catch (error) {
       console.error('Failed to create zip file:', error)
       alert('Failed to create zip file. Please try again.')
@@ -573,7 +587,7 @@ function PxlBatch() {
           mainImageDimensions={pixelatedImageInfo?.originalDimensions || { width: 0, height: 0 }}
           batchCount={files.length}
           onUpload={handleUploadClick}
-          onDownload={handleDownloadBatch}
+          onDownload={handleDownloadZip}
           onProcessAll={handleProcessAll}
           onClear={handleClear}
           showProcessButtons={files.length > 0 && !processing && results.length === 0}

@@ -4,7 +4,7 @@ import PixelationControls from '../components/PixelationControls'
 import ImagePreview from '../components/ImagePreview'
 import { pixelateImage } from '../utils/pixelation-client'
 import { cropImage, normalizeTo72dpi } from '../utils/image-manipulation'
-import { saveSettings } from '../utils/settings-manager'
+import { saveSettings, getSettings } from '../utils/settings-manager'
 import { saveMainImage, loadMainImage, savePixelatedImage, loadPixelatedImage } from '../utils/image-state-manager'
 import '../App.css'
 
@@ -72,19 +72,27 @@ function Pxl8() {
       
       // Restore pixelated image and pixelation settings
       const pixelatedData = await loadPixelatedImage()
+      const savedSettings = getSettings() // Get saved settings as fallback
+      
       if (pixelatedData && pixelatedData.imageInfo) {
         const info = pixelatedData.imageInfo
-        // Restore pixelation method
+        // Restore pixelation method (prefer pixelatedImageInfo, fallback to settings)
         if (info.pixelationMethod) {
           setPixelationMethod(info.pixelationMethod)
+        } else if (savedSettings && savedSettings.pixelationMethod) {
+          setPixelationMethod(savedSettings.pixelationMethod)
         }
-        // Restore pixelation level
+        // Restore pixelation level (prefer pixelatedImageInfo, fallback to settings)
         if (info.pixelationLevel !== undefined) {
           setPixelationLevel(info.pixelationLevel)
+        } else if (savedSettings && savedSettings.pixelationLevel !== undefined) {
+          setPixelationLevel(savedSettings.pixelationLevel)
         }
-        // Restore live update setting
+        // Restore live update setting (prefer pixelatedImageInfo, fallback to settings)
         if (info.liveUpdate !== undefined) {
           setLiveUpdate(info.liveUpdate)
+        } else if (savedSettings && savedSettings.liveUpdate !== undefined) {
+          setLiveUpdate(savedSettings.liveUpdate)
         }
         // Restore crop state
         if (info.cropState) {
@@ -97,6 +105,17 @@ function Pxl8() {
         // Restore pixelated image URL
         if (pixelatedData.imageUrl) {
           setProcessedImageUrl(pixelatedData.imageUrl)
+        }
+      } else if (savedSettings) {
+        // No pixelated image, restore from saved settings
+        if (savedSettings.pixelationLevel !== undefined) {
+          setPixelationLevel(savedSettings.pixelationLevel)
+        }
+        if (savedSettings.pixelationMethod) {
+          setPixelationMethod(savedSettings.pixelationMethod)
+        }
+        if (savedSettings.liveUpdate !== undefined) {
+          setLiveUpdate(savedSettings.liveUpdate)
         }
       }
     }
