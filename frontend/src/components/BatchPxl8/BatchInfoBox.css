@@ -50,42 +50,55 @@ body.dark-mode .batch-info-box {
   background: rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 1rem;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #00838f;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.info-text-buttons .process-all-button-info,
-.info-text-buttons .clear-button-info {
-  font-size: 0.85rem;
-  padding: 4px 10px;
-  font-weight: 600;
+body.dark-mode .info-text-buttons .process-all-button-info,
+body.dark-mode .info-text-buttons .clear-button-info {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #81d4fa;
+}
+
+.info-text-buttons .process-all-button-info:hover,
+.info-text-buttons .clear-button-info:hover {
+  background: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+  color: #006064;
+}
+
+body.dark-mode .info-text-buttons .process-all-button-info:hover,
+body.dark-mode .info-text-buttons .clear-button-info:hover {
+  background: rgba(0, 0, 0, 0.5);
+  color: #90caf9;
 }
 
 body.dark-mode .info-text-buttons .upload-button-info,
 body.dark-mode .info-text-buttons .download-button-info,
-body.dark-mode .info-text-buttons .theme-toggle-info,
-body.dark-mode .info-text-buttons .process-all-button-info,
-body.dark-mode .info-text-buttons .clear-button-info {
+body.dark-mode .info-text-buttons .theme-toggle-info {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 .info-text-buttons .upload-button-info:hover,
 .info-text-buttons .download-button-info:hover:not(.disabled),
-.info-text-buttons .theme-toggle-info:hover,
-.info-text-buttons .process-all-button-info:hover,
-.info-text-buttons .clear-button-info:hover {
+.info-text-buttons .theme-toggle-info:hover {
   background: rgba(255, 255, 255, 0.5);
   transform: scale(1.1);
 }
 
 body.dark-mode .info-text-buttons .upload-button-info:hover,
 body.dark-mode .info-text-buttons .download-button-info:hover:not(.disabled),
-body.dark-mode .info-text-buttons .theme-toggle-info:hover,
-body.dark-mode .info-text-buttons .process-all-button-info:hover,
-body.dark-mode .info-text-buttons .clear-button-info:hover {
+body.dark-mode .info-text-buttons .theme-toggle-info:hover {
   background: rgba(0, 0, 0, 0.5);
 }
 

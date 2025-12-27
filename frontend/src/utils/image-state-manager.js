@@ -95,7 +95,7 @@ export function getMainImageUrl() {
 /**
  * Save pixelated image to localStorage
  * @param {string} blobUrl - Blob URL of pixelated image
- * @param {Object} imageInfo - { originalDimensions, pixelSize, targetDimensions, pixelationMethod }
+ * @param {Object} imageInfo - { originalDimensions, pixelSize, targetDimensions, pixelationMethod, pixelationLevel, liveUpdate, cropState?, crunchApplied? }
  */
 export async function savePixelatedImage(blobUrl, imageInfo) {
   try {

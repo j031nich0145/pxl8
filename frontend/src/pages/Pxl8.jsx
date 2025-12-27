@@ -5,7 +5,7 @@ import ImagePreview from '../components/ImagePreview'
 import { pixelateImage } from '../utils/pixelation-client'
 import { cropImage, normalizeTo72dpi } from '../utils/image-manipulation'
 import { saveSettings } from '../utils/settings-manager'
-import { saveMainImage, loadMainImage, savePixelatedImage } from '../utils/image-state-manager'
+import { saveMainImage, loadMainImage, savePixelatedImage, loadPixelatedImage } from '../utils/image-state-manager'
 import '../App.css'
 
 function Pxl8() {
@@ -36,6 +36,10 @@ function Pxl8() {
   const [liveUpdate, setLiveUpdate] = useState(true)
   const [pixelationLevel, setPixelationLevel] = useState(5.5) // Default center (5.5% = middle of 1-10%)
   const [pixelationMethod, setPixelationMethod] = useState('average')
+  
+  // Crop and crunch state tracking
+  const [cropState, setCropState] = useState(null) // { aspectRatio, cropX, cropY, cropWidth, cropHeight } or null
+  const [crunchCount, setCrunchCount] = useState(0) // 0, 1, or 2
 
   const handleLiveUpdateChange = (value) => {
     setLiveUpdate(value)
@@ -50,7 +54,7 @@ function Pxl8() {
     })
   }, [pixelationLevel, pixelationMethod, liveUpdate])
 
-  // Restore main image state on mount (if coming from Batch page)
+  // Restore main image state and pixelation settings on mount (if coming from Batch page)
   useEffect(() => {
     const restoreImageState = async () => {
       const savedImage = await loadMainImage()
@@ -64,6 +68,36 @@ function Pxl8() {
           // Image already loaded, dimensions set
         }
         img.src = URL.createObjectURL(savedImage.file)
+      }
+      
+      // Restore pixelated image and pixelation settings
+      const pixelatedData = await loadPixelatedImage()
+      if (pixelatedData && pixelatedData.imageInfo) {
+        const info = pixelatedData.imageInfo
+        // Restore pixelation method
+        if (info.pixelationMethod) {
+          setPixelationMethod(info.pixelationMethod)
+        }
+        // Restore pixelation level
+        if (info.pixelationLevel !== undefined) {
+          setPixelationLevel(info.pixelationLevel)
+        }
+        // Restore live update setting
+        if (info.liveUpdate !== undefined) {
+          setLiveUpdate(info.liveUpdate)
+        }
+        // Restore crop state
+        if (info.cropState) {
+          setCropState(info.cropState)
+        }
+        // Restore crunch count
+        if (info.crunchCount !== undefined) {
+          setCrunchCount(info.crunchCount)
+        }
+        // Restore pixelated image URL
+        if (pixelatedData.imageUrl) {
+          setProcessedImageUrl(pixelatedData.imageUrl)
+        }
       }
     }
     restoreImageState()
@@ -119,6 +153,8 @@ function Pxl8() {
     setProcessedImageUrl(null)
     setError(null)
     clearHistory() // Clear history when new file is uploaded
+    setCropState(null) // Reset crop state
+    setCrunchCount(0) // Reset crunch count
     
     // Get image dimensions for pixelation calculation
     const img = new Image()
@@ -157,15 +193,21 @@ function Pxl8() {
       
       const croppedFile = await cropImage(uploadedFile, aspectRatio, cropX, cropY, cropWidth, cropHeight)
       
+      // Save crop state
+      setCropState({ aspectRatio, cropX, cropY, cropWidth, cropHeight })
+      
       // Update uploaded file and reset processed image
       setUploadedFile(croppedFile)
       setProcessedImage(null)
       setProcessedImageUrl(null)
       
-      // Get new image dimensions
+      // Get new image dimensions and save cropped file
       const img = new Image()
       img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height })
+        const dimensions = { width: img.width, height: img.height }
+        setImageDimensions(dimensions)
+        // Save cropped file for Batch page
+        saveMainImage(croppedFile, dimensions)
       }
       img.src = URL.createObjectURL(croppedFile)
     } catch (err) {
@@ -191,15 +233,21 @@ function Pxl8() {
       
       const normalizedFile = await normalizeTo72dpi(uploadedFile)
       
+      // Update crunch count
+      setCrunchCount(1)
+      
       // Update uploaded file and reset processed image
       setUploadedFile(normalizedFile)
       setProcessedImage(null)
       setProcessedImageUrl(null)
       
-      // Get new image dimensions
+      // Get new image dimensions and save crunched file
       const img = new Image()
       img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height })
+        const dimensions = { width: img.width, height: img.height }
+        setImageDimensions(dimensions)
+        // Save crunched file for Batch page
+        saveMainImage(normalizedFile, dimensions)
       }
       img.src = URL.createObjectURL(normalizedFile)
     } catch (err) {
@@ -227,15 +275,21 @@ function Pxl8() {
       const firstCrunch = await normalizeTo72dpi(uploadedFile)
       const secondCrunch = await normalizeTo72dpi(firstCrunch)
       
+      // Update crunch count
+      setCrunchCount(2)
+      
       // Update uploaded file and reset processed image
       setUploadedFile(secondCrunch)
       setProcessedImage(null)
       setProcessedImageUrl(null)
       
-      // Get new image dimensions
+      // Get new image dimensions and save crunched file
       const img = new Image()
       img.onload = () => {
-        setImageDimensions({ width: img.width, height: img.height })
+        const dimensions = { width: img.width, height: img.height }
+        setImageDimensions(dimensions)
+        // Save crunched file for Batch page
+        saveMainImage(secondCrunch, dimensions)
       }
       img.src = URL.createObjectURL(secondCrunch)
     } catch (err) {
@@ -362,14 +416,18 @@ function Pxl8() {
         originalDimensions: imageDimensions,
         pixelSize: pixelSize,
         targetDimensions: { width: targetWidth, height: targetHeight },
-        pixelationMethod: pixelationMethod
+        pixelationMethod: pixelationMethod,
+        pixelationLevel: pixelationLevel,
+        liveUpdate: liveUpdate,
+        cropState: cropState,
+        crunchCount: crunchCount
       }
       savePixelatedImage(processedImageUrl, imageInfo).catch(err => {
         console.error('Failed to save pixelated image:', err)
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [processedImageUrl, imageDimensions, pixelationMethod, pixelationLevel])
+  }, [processedImageUrl, imageDimensions, pixelationMethod, pixelationLevel, liveUpdate, cropState, crunchCount])
 
   // Cleanup object URLs on unmount
   useEffect(() => {

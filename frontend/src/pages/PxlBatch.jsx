@@ -6,6 +6,8 @@ import BatchResults from '../components/BatchPxl8/BatchResults'
 import { getSettings } from '../utils/settings-manager'
 import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages } from '../utils/image-state-manager'
 import { pixelateImage } from '../utils/pixelation-client'
+import { normalizeTo72dpi } from '../utils/image-manipulation'
+import JSZip from 'jszip'
 import './PxlBatch.css'
 
 function PxlBatch() {
@@ -292,10 +294,12 @@ function PxlBatch() {
 
   // Process all images
   const handleProcessAll = async () => {
-    if (files.length === 0 || !settings) return
+    if (files.length === 0 || !settings || !pixelatedImageInfo) return
     
     setProcessing(true)
     setResults([])
+    
+    const crunchCount = pixelatedImageInfo.crunchCount || 0
     
     // Initialize results array
     const initialResults = files.map(file => ({
@@ -317,42 +321,85 @@ function PxlBatch() {
         const imgUrl = URL.createObjectURL(file)
         
         await new Promise((resolve) => {
-          img.onload = () => {
-            const pixelSize = calculatePixelSize(settings.pixelationLevel)
-            const targetWidth = Math.max(1, Math.floor(img.width / pixelSize))
-            const targetHeight = Math.max(1, Math.floor(img.height / pixelSize))
-            
-            // Calculate multiplier (same as Pxl8.jsx)
-            const multiplier = 1.0 + (pixelSize / 100) * 2.0
-            
-            // Process image
-            pixelateImage(
-              file,
-              targetWidth,
-              targetHeight,
-              settings.pixelationMethod,
-              multiplier,
-              (progress) => {
-                setResults(prev => {
-                  const updated = [...prev]
-                  updated[i] = { ...updated[i], progress }
-                  return updated
+          img.onload = async () => {
+            try {
+              // Apply crunch operations if needed
+              let processedFile = file
+              let finalWidth = img.width
+              let finalHeight = img.height
+              
+              if (crunchCount > 0) {
+                processedFile = file
+                for (let j = 0; j < crunchCount; j++) {
+                  processedFile = await normalizeTo72dpi(processedFile)
+                }
+                // Recalculate image dimensions after crunch
+                const crunchedImg = new Image()
+                const crunchedImgUrl = URL.createObjectURL(processedFile)
+                await new Promise((resolveCrunched) => {
+                  crunchedImg.onload = () => {
+                    finalWidth = crunchedImg.width
+                    finalHeight = crunchedImg.height
+                    URL.revokeObjectURL(crunchedImgUrl)
+                    resolveCrunched()
+                  }
+                  crunchedImg.onerror = () => {
+                    URL.revokeObjectURL(crunchedImgUrl)
+                    resolveCrunched()
+                  }
+                  crunchedImg.src = crunchedImgUrl
                 })
               }
-            ).then(blob => {
-              setResults(prev => {
-                const updated = [...prev]
-                updated[i] = {
-                  ...updated[i],
-                  processedBlob: blob,
-                  status: 'completed',
-                  progress: 100
+              
+              const pixelSize = calculatePixelSize(settings.pixelationLevel)
+              const targetWidth = Math.max(1, Math.floor(finalWidth / pixelSize))
+              const targetHeight = Math.max(1, Math.floor(finalHeight / pixelSize))
+              
+              // Calculate multiplier (same as Pxl8.jsx)
+              const multiplier = 1.0 + (pixelSize / 100) * 2.0
+              
+              // Process image
+              pixelateImage(
+                processedFile,
+                targetWidth,
+                targetHeight,
+                settings.pixelationMethod,
+                multiplier,
+                (progress) => {
+                  setResults(prev => {
+                    const updated = [...prev]
+                    updated[i] = { ...updated[i], progress }
+                    return updated
+                  })
                 }
-                return updated
+              ).then(blob => {
+                setResults(prev => {
+                  const updated = [...prev]
+                  updated[i] = {
+                    ...updated[i],
+                    processedBlob: blob,
+                    status: 'completed',
+                    progress: 100
+                  }
+                  return updated
+                })
+                URL.revokeObjectURL(imgUrl)
+                resolve()
+              }).catch(error => {
+                setResults(prev => {
+                  const updated = [...prev]
+                  updated[i] = {
+                    ...updated[i],
+                    status: 'error',
+                    error: error.message || 'Processing failed',
+                    progress: 0
+                  }
+                  return updated
+                })
+                URL.revokeObjectURL(imgUrl)
+                resolve()
               })
-              URL.revokeObjectURL(imgUrl)
-              resolve()
-            }).catch(error => {
+            } catch (error) {
               setResults(prev => {
                 const updated = [...prev]
                 updated[i] = {
@@ -365,7 +412,7 @@ function PxlBatch() {
               })
               URL.revokeObjectURL(imgUrl)
               resolve()
-            })
+            }
           }
           img.onerror = () => {
             setResults(prev => {
@@ -400,7 +447,39 @@ function PxlBatch() {
     setProcessing(false)
   }
 
-  // Download batch
+  // Download batch as zip file
+  const handleDownloadZip = async () => {
+    const completedResults = results.filter(r => r.status === 'completed' && r.processedBlob)
+    
+    if (completedResults.length === 0) return
+    
+    try {
+      const zip = new JSZip()
+      
+      // Add each processed image to zip
+      completedResults.forEach((result) => {
+        zip.file(`pixelated_${result.file.name}`, result.processedBlob)
+      })
+      
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      
+      // Download zip file
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `pixelated_images_${Date.now()}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to create zip file:', error)
+      alert('Failed to create zip file. Please try again.')
+    }
+  }
+
+  // Download batch (individual files - kept for backward compatibility)
   const handleDownloadBatch = async () => {
     const completedResults = results.filter(r => r.status === 'completed' && r.processedBlob)
     
@@ -431,6 +510,11 @@ function PxlBatch() {
     saveBatchImages([]).catch(err => {
       console.error('Failed to clear batch images:', err)
     })
+  }
+
+  const handleClearResults = () => {
+    setResults([])
+    // Only clear results, keep batch images loaded
   }
 
   const completedResults = results.filter(r => r.status === 'completed')
@@ -475,7 +559,12 @@ function PxlBatch() {
 
         {/* Results */}
         {results.length > 0 && !processing && (
-          <BatchResults results={results} />
+          <BatchResults 
+            results={results} 
+            pixelatedImageInfo={pixelatedImageInfo}
+            onClear={handleClearResults}
+            onDownloadZip={handleDownloadZip}
+          />
         )}
 
         {/* Blue Info Box */}
