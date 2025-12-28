@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './CropPreviewModal.css'
 
-function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
+function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel, onRotateImage }) {
   const [originalUrl, setOriginalUrl] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   const [cropPosition, setCropPosition] = useState({ x: 0, y: 0 })
@@ -164,162 +164,47 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     }
   }
 
-  // Handle 90-degree clockwise rotation
-  const handleRotate = () => {
-    if (!currentAspectRatio || currentAspectRatio === 1) {
-      // 1:1 stays the same
-      return
+  // Handle 90-degree clockwise rotation of the actual image
+  const handleRotateImage = async () => {
+    if (onRotateImage) {
+      await onRotateImage()
+      // Modal will be re-rendered with rotated image, reset crop to initial state happens in useEffect
     }
-    
-    // Calculate new aspect ratio (inverse)
-    const newAspectRatio = 1 / currentAspectRatio
-    setCurrentAspectRatio(newAspectRatio)
-    
-    // Recalculate crop size maintaining area or fitting to image
-    const currentArea = cropSize.width * cropSize.height
-    const imageRatio = imageDimensions.width / imageDimensions.height
-    
-    let newWidth, newHeight
-    
-    if (imageRatio > newAspectRatio) {
-      // Image wider - constrain by height
-      newHeight = Math.min(imageDimensions.height * 0.8, Math.sqrt(currentArea / newAspectRatio))
-      newWidth = newHeight * newAspectRatio
-    } else {
-      // Image taller - constrain by width
-      newWidth = Math.min(imageDimensions.width * 0.8, Math.sqrt(currentArea * newAspectRatio))
-      newHeight = newWidth / newAspectRatio
-    }
-    
-    // Ensure minimum size
-    if (newWidth < 50) {
-      newWidth = 50
-      newHeight = newWidth / newAspectRatio
-    }
-    if (newHeight < 50) {
-      newHeight = 50
-      newWidth = newHeight * newAspectRatio
-    }
-    
-    // Constrain to image bounds
-    newWidth = Math.min(newWidth, imageDimensions.width)
-    newHeight = Math.min(newHeight, imageDimensions.height)
-    
-    // Center the crop
-    const newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
-    const newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
-    
-    setCropSize({ width: newWidth, height: newHeight })
-    setCropPosition({ x: newX, y: newY })
-  }
-
-  // Handle 90-degree counter-clockwise rotation
-  const handleRotateCounterClockwise = () => {
-    if (!currentAspectRatio || currentAspectRatio === 1) {
-      // 1:1 stays the same
-      return
-    }
-    
-    // Calculate new aspect ratio (inverse) - same logic as clockwise
-    const newAspectRatio = 1 / currentAspectRatio
-    setCurrentAspectRatio(newAspectRatio)
-    
-    // Recalculate crop size maintaining area or fitting to image
-    const currentArea = cropSize.width * cropSize.height
-    const imageRatio = imageDimensions.width / imageDimensions.height
-    
-    let newWidth, newHeight
-    
-    if (imageRatio > newAspectRatio) {
-      // Image wider - constrain by height
-      newHeight = Math.min(imageDimensions.height * 0.8, Math.sqrt(currentArea / newAspectRatio))
-      newWidth = newHeight * newAspectRatio
-    } else {
-      // Image taller - constrain by width
-      newWidth = Math.min(imageDimensions.width * 0.8, Math.sqrt(currentArea * newAspectRatio))
-      newHeight = newWidth / newAspectRatio
-    }
-    
-    // Ensure minimum size
-    if (newWidth < 50) {
-      newWidth = 50
-      newHeight = newWidth / newAspectRatio
-    }
-    if (newHeight < 50) {
-      newHeight = 50
-      newWidth = newHeight * newAspectRatio
-    }
-    
-    // Constrain to image bounds
-    newWidth = Math.min(newWidth, imageDimensions.width)
-    newHeight = Math.min(newHeight, imageDimensions.height)
-    
-    // Center the crop
-    const newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
-    const newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
-    
-    setCropSize({ width: newWidth, height: newHeight })
-    setCropPosition({ x: newX, y: newY })
   }
 
   // Handle scaling with keyboard
   const handleScale = (direction) => {
     if (!currentAspectRatio || !imageDimensions.width) return
     
-    const scaleFactor = direction === 'up' ? 1.05 : 0.95 // Smaller increments for smoother scaling
-    const newWidth = cropSize.width * scaleFactor
-    const newHeight = newWidth / currentAspectRatio
+    const scaleFactor = direction === 'up' ? 1.05 : 0.95
+    let newWidth = cropSize.width * scaleFactor
+    let newHeight = newWidth / currentAspectRatio
     
-    // Check bounds
-    let finalWidth = newWidth
-    let finalHeight = newHeight
+    // Minimum size: 20×20
+    if (newWidth < 20) newWidth = 20
+    if (newHeight < 20) newHeight = 20
+    newWidth = Math.max(20, newHeight * currentAspectRatio)
+    newHeight = newWidth / currentAspectRatio
     
-    // Ensure minimum size
-    if (finalWidth < 50) {
-      finalWidth = 50
-      finalHeight = finalWidth / currentAspectRatio
-    }
-    if (finalHeight < 50) {
-      finalHeight = 50
-      finalWidth = finalHeight * currentAspectRatio
-    }
+    // Maximum size: full image with aspect ratio constraint
+    const maxWidthByImage = imageDimensions.width
+    const maxHeightByImage = imageDimensions.height
+    const maxWidthByRatio = maxHeightByImage * currentAspectRatio
+    const maxHeightByRatio = maxWidthByImage / currentAspectRatio
     
-    // Calculate maximum size that fits in image bounds
-    const maxWidthFromX = imageDimensions.width - cropPosition.x
-    const maxHeightFromY = imageDimensions.height - cropPosition.y
-    const maxWidthFromRatio = maxHeightFromY * currentAspectRatio
-    const maxHeightFromRatio = maxWidthFromX / currentAspectRatio
+    const absoluteMaxWidth = Math.min(maxWidthByImage, maxWidthByRatio)
+    const absoluteMaxHeight = Math.min(maxHeightByImage, maxHeightByRatio)
     
-    const maxWidth = Math.min(maxWidthFromX, maxWidthFromRatio)
-    const maxHeight = Math.min(maxHeightFromY, maxHeightFromRatio)
+    if (newWidth > absoluteMaxWidth) newWidth = absoluteMaxWidth
+    if (newHeight > absoluteMaxHeight) newHeight = absoluteMaxHeight
+    newWidth = Math.min(newWidth, newHeight * currentAspectRatio)
+    newHeight = newWidth / currentAspectRatio
     
-    // Constrain to image bounds
-    if (finalWidth > maxWidth) {
-      finalWidth = maxWidth
-      finalHeight = finalWidth / currentAspectRatio
-    }
-    if (finalHeight > maxHeight) {
-      finalHeight = maxHeight
-      finalWidth = finalHeight * currentAspectRatio
-    }
+    // Center the crop box
+    let newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
+    let newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
     
-    // Adjust position if needed to keep crop within bounds (center the crop)
-    let newX = cropPosition.x
-    let newY = cropPosition.y
-    
-    // If scaling would go out of bounds, adjust position to keep it centered
-    if (cropPosition.x + finalWidth > imageDimensions.width) {
-      newX = imageDimensions.width - finalWidth
-    }
-    if (cropPosition.y + finalHeight > imageDimensions.height) {
-      newY = imageDimensions.height - finalHeight
-    }
-    
-    // Ensure position is valid
-    newX = Math.max(0, newX)
-    newY = Math.max(0, newY)
-    
-    setCropSize({ width: finalWidth, height: finalHeight })
+    setCropSize({ width: newWidth, height: newHeight })
     setCropPosition({ x: newX, y: newY })
   }
 
@@ -596,14 +481,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
           Drag to move • Arrow keys to nudge • +/- to resize
         </div>
         <div className="crop-actions">
-          <div className="crop-rotate-buttons">
-            <button className="crop-rotate-button" onClick={handleRotateCounterClockwise} title="Rotate 90° counter-clockwise">
-              ↺ CCW
-            </button>
-            <button className="crop-rotate-button" onClick={handleRotate} title="Rotate 90° clockwise">
-              ↻ CW
-            </button>
-          </div>
+          <button className="crop-rotate-button" onClick={handleRotateImage} title="Rotate image 90° clockwise">
+            ↻ Rotate Image
+          </button>
           <button className="crop-cancel-button" onClick={onCancel}>
             Cancel
           </button>

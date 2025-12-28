@@ -109,6 +109,58 @@ export async function cropImage(file, aspectRatio, cropX = null, cropY = null, c
 }
 
 /**
+ * Rotate an image 90 degrees clockwise
+ * @param {File} file - Image file to rotate
+ * @returns {Promise<File>} - Rotated image as File
+ */
+export async function rotateImage90CW(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        // Swap dimensions for 90° rotation
+        canvas.width = img.height
+        canvas.height = img.width
+        const ctx = canvas.getContext('2d')
+        
+        // Rotate 90° clockwise
+        ctx.translate(canvas.width / 2, canvas.height / 2)
+        ctx.rotate(Math.PI / 2)
+        ctx.drawImage(img, -img.width / 2, -img.height / 2)
+        
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Failed to rotate image'))
+            return
+          }
+          
+          const rotatedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          })
+          
+          URL.revokeObjectURL(url)
+          resolve(rotatedFile)
+        }, file.type || 'image/png')
+      } catch (err) {
+        URL.revokeObjectURL(url)
+        reject(err)
+      }
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
+    
+    img.src = url
+  })
+}
+
+/**
  * Normalize image to 72dpi equivalent
  * Assumes source is 96dpi (common web default) and converts to 72dpi
  * @param {File} file - Image file to normalize

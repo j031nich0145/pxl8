@@ -362,11 +362,6 @@ body.dark-mode .crop-apply-button:hover {
   background: #1565c0;
 }
 
-.crop-rotate-buttons {
-  display: flex;
-  gap: 8px;
-}
-
 .crop-rotate-button {
   padding: 8px 12px;
   background: #e0f7fa;

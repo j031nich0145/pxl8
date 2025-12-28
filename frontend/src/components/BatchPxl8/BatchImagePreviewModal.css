@@ -26,9 +26,9 @@
   position: relative;
   background: #ffffff;
   border-radius: 12px;
-  padding: 20px;
-  max-width: 90vw;
-  max-height: 90vh;
+  width: min(90vmin, 800px);
+  height: min(90vmin, 800px);
+  padding: 80px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -131,11 +131,11 @@ body.dark-mode .batch-image-preview-nav:hover:not(:disabled) {
 }
 
 .batch-image-preview-nav-prev {
-  left: 10px;
+  left: 20px;
 }
 
 .batch-image-preview-nav-next {
-  right: 10px;
+  right: 20px;
 }
 
 .batch-image-preview-toggle {
@@ -202,11 +202,12 @@ body.dark-mode .batch-image-preview-toggle-button.active:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 100%;
-  max-height: 80vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border-radius: 8px;
   background: #f5f5f5;
+  flex: 1;
 }
 
 body.dark-mode .batch-image-preview-container {
@@ -214,10 +215,8 @@ body.dark-mode .batch-image-preview-container {
 }
 
 .batch-image-preview-image {
-  min-width: 200px;
-  min-height: 200px;
   max-width: 100%;
-  max-height: 80vh;
+  max-height: 100%;
   display: block;
   object-fit: contain;
   user-select: none;

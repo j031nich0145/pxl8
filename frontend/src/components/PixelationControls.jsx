@@ -15,6 +15,7 @@ function PixelationControls({
   onProcess,
   processedImageUrl,
   onCrop,
+  onRotateImage,
   onCrunch,
   on2xCrunch,
   onUndo,
@@ -308,6 +309,7 @@ function PixelationControls({
                 aspectRatio={selectedAspectRatio}
                 onCrop={handleCropApply}
                 onCancel={handleCropCancel}
+                onRotateImage={onRotateImage}
               />
             )}
           </div>

@@ -3,7 +3,7 @@ import ImageUpload from '../components/ImageUpload'
 import PixelationControls from '../components/PixelationControls'
 import ImagePreview from '../components/ImagePreview'
 import { pixelateImage } from '../utils/pixelation-client'
-import { cropImage, normalizeTo72dpi } from '../utils/image-manipulation'
+import { cropImage, normalizeTo72dpi, rotateImage90CW } from '../utils/image-manipulation'
 import { saveSettings, getSettings } from '../utils/settings-manager'
 import { saveMainImage, loadMainImage, savePixelatedImage, loadPixelatedImage } from '../utils/image-state-manager'
 import '../App.css'
@@ -248,6 +248,40 @@ function Pxl8() {
       img.src = URL.createObjectURL(croppedFile)
     } catch (err) {
       setError(err.message || 'Crop failed')
+    }
+  }, [uploadedFile, addToHistory])
+
+  const handleRotateImage = useCallback(async () => {
+    console.log('Pxl8: handleRotateImage() called')
+    if (!uploadedFile) {
+      setError('Please upload an image first')
+      return
+    }
+
+    try {
+      setError(null)
+      // Save current file to history before rotating
+      addToHistory(uploadedFile)
+      
+      const rotatedFile = await rotateImage90CW(uploadedFile)
+      
+      // Update uploaded file and reset processed image
+      setUploadedFile(rotatedFile)
+      setProcessedImage(null)
+      setProcessedImageUrl(null)
+      
+      // Get new image dimensions and save rotated file
+      const img = new Image()
+      img.onload = async () => {
+        const dimensions = { width: img.width, height: img.height }
+        setImageDimensions(dimensions)
+        // Save rotated file for Batch page
+        await saveMainImage(rotatedFile, dimensions)
+        // useEffect will handle reprocessing when uploadedFile changes
+      }
+      img.src = URL.createObjectURL(rotatedFile)
+    } catch (err) {
+      setError(err.message || 'Rotation failed')
     }
   }, [uploadedFile, addToHistory])
 
@@ -580,6 +614,7 @@ function Pxl8() {
                 onProcess={handleProcess}
                 processedImageUrl={processedImageUrl}
                 onCrop={handleCrop}
+                onRotateImage={handleRotateImage}
                 onCrunch={handleCrunch}
                 on2xCrunch={handle2xCrunch}
                 onUndo={handleUndo}
