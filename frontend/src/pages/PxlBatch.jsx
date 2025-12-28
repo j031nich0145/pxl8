@@ -4,10 +4,12 @@ import BatchThumbnailsGrid from '../components/BatchPxl8/BatchThumbnailsGrid'
 import BatchInfoBox from '../components/BatchPxl8/BatchInfoBox'
 import BatchPreviewInfoCard from '../components/BatchPxl8/BatchPreviewInfoCard'
 import BatchImagePreviewModal from '../components/BatchPxl8/BatchImagePreviewModal'
+import BatchCropModal from '../components/BatchPxl8/BatchCropModal'
+import BatchCrunchModal from '../components/BatchPxl8/BatchCrunchModal'
 import { getSettings } from '../utils/settings-manager'
 import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages, getMainImageUrl, loadMainImage } from '../utils/image-state-manager'
 import { pixelateImage } from '../utils/pixelation-client'
-import { normalizeTo72dpi } from '../utils/image-manipulation'
+import { normalizeTo72dpi, batchCropImages } from '../utils/image-manipulation'
 import JSZip from 'jszip'
 import './PxlBatch.css'
 
@@ -38,6 +40,8 @@ function PxlBatch() {
     const saved = localStorage.getItem('pxl8_dark_mode')
     return saved === 'true'
   })
+  const [showBatchCropModal, setShowBatchCropModal] = useState(false)
+  const [showBatchCrunchModal, setShowBatchCrunchModal] = useState(false)
   const fileInputRef = useRef(null)
 
   // Load settings on mount
@@ -506,10 +510,108 @@ function PxlBatch() {
     // Only clear results, keep batch images loaded
   }
 
-  // Placeholder for batch crop functionality
+  // Handle batch crop
   const handleBatchCrop = () => {
-    // TODO: Implement batch crop functionality
-    console.log('Batch Crop functionality coming soon')
+    if (files.length === 0) {
+      alert('Please upload images first')
+      return
+    }
+    
+    setShowBatchCropModal(true)
+  }
+
+  // Handle batch crop apply
+  const handleBatchCropApply = async (cropData) => {
+    try {
+      setProcessing(true)
+      setShowBatchCropModal(false)
+      
+      // Apply crop to all included images
+      const croppedFiles = await batchCropImages(files, cropData)
+      
+      // Update files array with cropped versions
+      setFiles(croppedFiles)
+      
+      // Clear processed results since images changed
+      setResults([])
+      setProcessedImageUrls({})
+      
+      // Save updated batch images
+      await saveBatchImages(croppedFiles)
+      
+      alert(`Successfully cropped ${cropData.includedImages.length} image${cropData.includedImages.length !== 1 ? 's' : ''}`)
+    } catch (error) {
+      console.error('Batch crop failed:', error)
+      alert('Failed to crop images. Please try again.')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Handle batch crop cancel
+  const handleBatchCropCancel = () => {
+    setShowBatchCropModal(false)
+  }
+
+  // Handle batch crunch click
+  const handleBatchCrunchClick = () => {
+    if (files.length === 0) {
+      alert('Please upload images first')
+      return
+    }
+    
+    setShowBatchCrunchModal(true)
+  }
+
+  // Handle batch crunch operation
+  const handleBatchCrunch = async (crunchCount = 1) => {
+    if (files.length === 0) return
+    
+    setProcessing(true)
+    setShowBatchCrunchModal(false)
+    
+    try {
+      const crunchedFiles = []
+      
+      for (let i = 0; i < files.length; i++) {
+        let processedFile = files[i]
+        
+        // Apply crunch operation(s)
+        for (let j = 0; j < crunchCount; j++) {
+          processedFile = await normalizeTo72dpi(processedFile)
+        }
+        
+        crunchedFiles.push(processedFile)
+      }
+      
+      // Update files with crunched versions
+      setFiles(crunchedFiles)
+      
+      // Clear processed results since images changed
+      setResults([])
+      setProcessedImageUrls({})
+      
+      // Save updated batch images
+      await saveBatchImages(crunchedFiles)
+      
+      alert(`Successfully crunched ${crunchedFiles.length} image${crunchedFiles.length !== 1 ? 's' : ''} ${crunchCount}×`)
+    } catch (error) {
+      console.error('Batch crunch failed:', error)
+      alert('Failed to crunch images. Please try again.')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  // Handle crunch "Crop First" workflow
+  const handleCrunchCropFirst = () => {
+    setShowBatchCrunchModal(false)
+    setShowBatchCropModal(true)
+  }
+
+  // Handle batch crunch cancel
+  const handleBatchCrunchCancel = () => {
+    setShowBatchCrunchModal(false)
   }
 
   // Handle thumbnail click to open preview modal
@@ -705,6 +807,25 @@ function PxlBatch() {
           onNavigate={handlePreviewNavigate}
         />
 
+        {/* Batch Crop Modal */}
+        {showBatchCropModal && (
+          <BatchCropModal
+            files={files}
+            onApply={handleBatchCropApply}
+            onCancel={handleBatchCropCancel}
+          />
+        )}
+
+        {/* Batch Crunch Modal */}
+        {showBatchCrunchModal && (
+          <BatchCrunchModal
+            files={files}
+            onCrunch={handleBatchCrunch}
+            onCropFirst={handleCrunchCropFirst}
+            onCancel={handleBatchCrunchCancel}
+          />
+        )}
+
         {/* Blue Info Box */}
         <BatchInfoBox
           mainImage={pixelatedImageUrl ? true : false}
@@ -716,6 +837,7 @@ function PxlBatch() {
           onDownload={handleDownloadZip}
           onProcessAll={handlePreviewAll}
           onBatchCrop={handleBatchCrop}
+          onBatchCrunch={handleBatchCrunchClick}
           onClear={handleClear}
           showProcessButtons={files.length > 0 && !processing}
           canDownload={completedResults.length > 0}

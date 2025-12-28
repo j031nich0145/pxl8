@@ -25,30 +25,52 @@ body.dark-mode .batch-info-box {
   display: block;
 }
 
-.info-text-nav-buttons {
+.batch-info-controls {
   position: absolute;
   bottom: 8px;
   left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.batch-info-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.batch-info-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Legacy classes kept for compatibility */
+.info-text-nav-buttons {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .info-text-buttons {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.info-text-buttons .upload-button-info,
-.info-text-buttons .download-button-info,
-.info-text-buttons .theme-toggle-info,
-.info-text-buttons .batch-crop-button-info,
-.info-text-buttons .process-all-button-info,
-.info-text-buttons .clear-button-info {
+.upload-button-info,
+.download-button-info,
+.theme-toggle-info,
+.batch-crop-button-info,
+.batch-crunch-button-info,
+.process-all-button-info,
+.clear-button-info {
   background: rgba(255, 255, 255, 0.3);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 6px;
@@ -64,50 +86,53 @@ body.dark-mode .batch-info-box {
   flex-shrink: 0;
 }
 
-body.dark-mode .info-text-buttons .batch-crop-button-info,
-body.dark-mode .info-text-buttons .process-all-button-info,
-body.dark-mode .info-text-buttons .clear-button-info {
+body.dark-mode .batch-crop-button-info,
+body.dark-mode .batch-crunch-button-info,
+body.dark-mode .process-all-button-info,
+body.dark-mode .clear-button-info {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.1);
   color: #81d4fa;
 }
 
-.info-text-buttons .batch-crop-button-info:hover,
-.info-text-buttons .process-all-button-info:hover,
-.info-text-buttons .clear-button-info:hover {
+.batch-crop-button-info:hover,
+.batch-crunch-button-info:hover,
+.process-all-button-info:hover,
+.clear-button-info:hover {
   background: rgba(255, 255, 255, 0.5);
   transform: scale(1.05);
   color: #006064;
 }
 
-body.dark-mode .info-text-buttons .batch-crop-button-info:hover,
-body.dark-mode .info-text-buttons .process-all-button-info:hover,
-body.dark-mode .info-text-buttons .clear-button-info:hover {
+body.dark-mode .batch-crop-button-info:hover,
+body.dark-mode .batch-crunch-button-info:hover,
+body.dark-mode .process-all-button-info:hover,
+body.dark-mode .clear-button-info:hover {
   background: rgba(0, 0, 0, 0.5);
   color: #90caf9;
 }
 
-body.dark-mode .info-text-buttons .upload-button-info,
-body.dark-mode .info-text-buttons .download-button-info,
-body.dark-mode .info-text-buttons .theme-toggle-info {
+body.dark-mode .upload-button-info,
+body.dark-mode .download-button-info,
+body.dark-mode .theme-toggle-info {
   background: rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-.info-text-buttons .upload-button-info:hover,
-.info-text-buttons .download-button-info:hover:not(.disabled),
-.info-text-buttons .theme-toggle-info:hover {
+.upload-button-info:hover,
+.download-button-info:hover:not(.disabled),
+.theme-toggle-info:hover {
   background: rgba(255, 255, 255, 0.5);
   transform: scale(1.1);
 }
 
-body.dark-mode .info-text-buttons .upload-button-info:hover,
-body.dark-mode .info-text-buttons .download-button-info:hover:not(.disabled),
-body.dark-mode .info-text-buttons .theme-toggle-info:hover {
+body.dark-mode .upload-button-info:hover,
+body.dark-mode .download-button-info:hover:not(.disabled),
+body.dark-mode .theme-toggle-info:hover {
   background: rgba(0, 0, 0, 0.5);
 }
 
-.info-text-buttons .download-button-info.disabled {
+.download-button-info.disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

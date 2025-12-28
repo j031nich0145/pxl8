@@ -225,3 +225,148 @@ export async function normalizeTo72dpi(file) {
   })
 }
 
+/**
+ * Apply the same crop to multiple images
+ * Crop coordinates are based on a reference image and scaled proportionally to each image
+ * @param {Array<File>} files - Array of image files to crop
+ * @param {Object} cropData - Crop data from BatchCropModal
+ * @param {number} cropData.x - X position in pixels (based on reference image)
+ * @param {number} cropData.y - Y position in pixels (based on reference image)
+ * @param {number} cropData.width - Crop width in pixels (based on reference image)
+ * @param {number} cropData.height - Crop height in pixels (based on reference image)
+ * @param {Object} cropData.referenceDimensions - Dimensions of reference image
+ * @param {Array<number>} cropData.includedImages - Indices of images to crop
+ * @returns {Promise<Array<File>>} - Array of cropped image files
+ */
+export async function batchCropImages(files, cropData) {
+  const { x, y, width, height, referenceDimensions, includedImages } = cropData
+  
+  // Calculate crop as percentages of reference image
+  const xPercent = x / referenceDimensions.width
+  const yPercent = y / referenceDimensions.height
+  const widthPercent = width / referenceDimensions.width
+  const heightPercent = height / referenceDimensions.height
+  
+  const croppedFiles = []
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i]
+    
+    // Skip if not included in crop
+    if (!includedImages.includes(i)) {
+      croppedFiles.push(file)
+      continue
+    }
+    
+    try {
+      // Load image to get dimensions
+      const img = await loadImageFromFile(file)
+      
+      // Apply percentage-based crop to this image
+      const scaledX = Math.round(img.width * xPercent)
+      const scaledY = Math.round(img.height * yPercent)
+      const scaledWidth = Math.round(img.width * widthPercent)
+      const scaledHeight = Math.round(img.height * heightPercent)
+      
+      // Ensure crop stays within bounds
+      const finalX = Math.max(0, Math.min(scaledX, img.width - 1))
+      const finalY = Math.max(0, Math.min(scaledY, img.height - 1))
+      const finalWidth = Math.min(scaledWidth, img.width - finalX)
+      const finalHeight = Math.min(scaledHeight, img.height - finalY)
+      
+      const croppedFile = await cropImageWithCoordinates(
+        file, finalX, finalY, finalWidth, finalHeight
+      )
+      
+      croppedFiles.push(croppedFile)
+    } catch (error) {
+      console.error(`Failed to crop image ${file.name}:`, error)
+      // Keep original file if crop fails
+      croppedFiles.push(file)
+    }
+  }
+  
+  return croppedFiles
+}
+
+/**
+ * Helper to load image from file
+ * @param {File} file - Image file to load
+ * @returns {Promise<HTMLImageElement>} - Loaded image element
+ */
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      resolve(img)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
+    img.src = url
+  })
+}
+
+/**
+ * Crop image using exact pixel coordinates
+ * @param {File} file - Image file to crop
+ * @param {number} x - X coordinate in pixels
+ * @param {number} y - Y coordinate in pixels
+ * @param {number} width - Crop width in pixels
+ * @param {number} height - Crop height in pixels
+ * @returns {Promise<File>} - Cropped image as File
+ */
+function cropImageWithCoordinates(file, x, y, width, height) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      try {
+        // Create canvas for cropping
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        
+        // Draw cropped portion
+        ctx.drawImage(
+          img,
+          x, y, width, height,  // Source crop
+          0, 0, width, height   // Destination
+        )
+        
+        // Convert to blob then to file
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Failed to create cropped image'))
+            return
+          }
+          
+          // Create new File from blob
+          const croppedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          })
+          
+          URL.revokeObjectURL(url)
+          resolve(croppedFile)
+        }, file.type || 'image/png')
+      } catch (err) {
+        URL.revokeObjectURL(url)
+        reject(err)
+      }
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
+    
+    img.src = url
+  })
+}
