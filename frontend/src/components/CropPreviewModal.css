@@ -196,8 +196,8 @@ body.dark-mode .crop-preview-container {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 12px;
   border: 2px solid #ffffff;
   border-radius: 50%;
   cursor: move;
@@ -225,6 +225,18 @@ body.dark-mode .crop-handle-center {
   right: 0;
   height: 1px;
   transform: translateY(-50%);
+}
+
+.crop-grid-line-main {
+  opacity: 0.8;
+}
+
+.crop-grid-line-vertical.crop-grid-line-main {
+  width: 2px;
+}
+
+.crop-grid-line-horizontal.crop-grid-line-main {
+  height: 2px;
 }
 
 .crop-handle-resize {
@@ -348,5 +360,39 @@ body.dark-mode .crop-apply-button {
 
 body.dark-mode .crop-apply-button:hover {
   background: #1565c0;
+}
+
+.crop-rotate-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.crop-rotate-button {
+  padding: 8px 12px;
+  background: #e0f7fa;
+  color: #00838f;
+  border: 1px solid #4dd0e1;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .crop-rotate-button {
+  background: #1e3a5f;
+  color: #81d4fa;
+  border-color: #1976d2;
+}
+
+.crop-rotate-button:hover {
+  background: #b2ebf2;
+  border-color: #26c6da;
+  transform: translateY(-1px);
+}
+
+body.dark-mode .crop-rotate-button:hover {
+  background: #2c5282;
+  border-color: #42a5f5;
 }
 

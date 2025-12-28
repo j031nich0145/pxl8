@@ -38,10 +38,10 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
                   // The modal will handle showing both versions with toggle
                   const img = new Image()
                   img.onload = () => {
-                    onThumbnailClick(targetImageUrl, 'Target Image', { width: img.width, height: img.height })
+                    onThumbnailClick(targetImageUrl, 'Target Image', { width: img.width, height: img.height }, 0)
                   }
                   img.onerror = () => {
-                    onThumbnailClick(targetImageUrl, 'Target Image', null)
+                    onThumbnailClick(targetImageUrl, 'Target Image', null, 0)
                   }
                   img.src = targetImageUrl
                 }
@@ -94,11 +94,12 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
                 onClick={() => {
                   if (onThumbnailClick) {
                     const img = new Image()
+                    const imageIndex = targetImageUrl ? index + 1 : index // Offset by 1 if target image exists
                     img.onload = () => {
-                      onThumbnailClick(imageUrl, file.name, { width: img.width, height: img.height })
+                      onThumbnailClick(imageUrl, file.name, { width: img.width, height: img.height }, imageIndex)
                     }
                     img.onerror = () => {
-                      onThumbnailClick(imageUrl, file.name, null)
+                      onThumbnailClick(imageUrl, file.name, null, imageIndex)
                     }
                     img.src = imageUrl
                   }

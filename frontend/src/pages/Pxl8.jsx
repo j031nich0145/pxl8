@@ -359,11 +359,8 @@ function Pxl8() {
     const targetWidth = Math.max(1, Math.floor(imageDimensions.width / pixelSize))
     const targetHeight = Math.max(1, Math.floor(imageDimensions.height / pixelSize))
     
-    // Calculate multiplier to make pixelation more visible/sensitive
-    // Multiplier increases with pixelation level to make effect more visible
-    // For now, use a constant multiplier that makes pixelation more visible
-    // This can be adjusted based on user feedback
-    const multiplier = 1.0 + (pixelSize / 100) * 2.0 // Multiplier from 1.0 to 3.0 based on pixel size
+    // Always use multiplier of 1.0 to maintain original image dimensions
+    const multiplier = 1.0
     
     return { width: targetWidth, height: targetHeight, pixelSize, multiplier }
   }

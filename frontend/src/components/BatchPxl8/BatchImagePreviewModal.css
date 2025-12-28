@@ -88,6 +88,56 @@ body.dark-mode .batch-image-preview-close:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 
+.batch-image-preview-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 300;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+  padding: 0;
+  line-height: 1;
+}
+
+body.dark-mode .batch-image-preview-nav {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.batch-image-preview-nav:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.8);
+  transform: translateY(-50%) scale(1.1);
+}
+
+body.dark-mode .batch-image-preview-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.batch-image-preview-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.batch-image-preview-nav-prev {
+  left: 10px;
+}
+
+.batch-image-preview-nav-next {
+  right: 10px;
+}
+
 .batch-image-preview-toggle {
   display: flex;
   gap: 8px;

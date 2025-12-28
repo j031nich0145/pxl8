@@ -164,7 +164,7 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     }
   }
 
-  // Handle 90-degree rotation
+  // Handle 90-degree clockwise rotation
   const handleRotate = () => {
     if (!currentAspectRatio || currentAspectRatio === 1) {
       // 1:1 stays the same
@@ -172,6 +172,55 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     }
     
     // Calculate new aspect ratio (inverse)
+    const newAspectRatio = 1 / currentAspectRatio
+    setCurrentAspectRatio(newAspectRatio)
+    
+    // Recalculate crop size maintaining area or fitting to image
+    const currentArea = cropSize.width * cropSize.height
+    const imageRatio = imageDimensions.width / imageDimensions.height
+    
+    let newWidth, newHeight
+    
+    if (imageRatio > newAspectRatio) {
+      // Image wider - constrain by height
+      newHeight = Math.min(imageDimensions.height * 0.8, Math.sqrt(currentArea / newAspectRatio))
+      newWidth = newHeight * newAspectRatio
+    } else {
+      // Image taller - constrain by width
+      newWidth = Math.min(imageDimensions.width * 0.8, Math.sqrt(currentArea * newAspectRatio))
+      newHeight = newWidth / newAspectRatio
+    }
+    
+    // Ensure minimum size
+    if (newWidth < 50) {
+      newWidth = 50
+      newHeight = newWidth / newAspectRatio
+    }
+    if (newHeight < 50) {
+      newHeight = 50
+      newWidth = newHeight * newAspectRatio
+    }
+    
+    // Constrain to image bounds
+    newWidth = Math.min(newWidth, imageDimensions.width)
+    newHeight = Math.min(newHeight, imageDimensions.height)
+    
+    // Center the crop
+    const newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
+    const newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
+    
+    setCropSize({ width: newWidth, height: newHeight })
+    setCropPosition({ x: newX, y: newY })
+  }
+
+  // Handle 90-degree counter-clockwise rotation
+  const handleRotateCounterClockwise = () => {
+    if (!currentAspectRatio || currentAspectRatio === 1) {
+      // 1:1 stays the same
+      return
+    }
+    
+    // Calculate new aspect ratio (inverse) - same logic as clockwise
     const newAspectRatio = 1 / currentAspectRatio
     setCurrentAspectRatio(newAspectRatio)
     
@@ -414,10 +463,11 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     // Vertical lines
     for (let i = 1; i < gridDivisions; i++) {
       const xPercent = (i / gridDivisions) * 100
+      const isMainLine = gridType === '9x9' && i % 3 === 0  // Every 3rd line is main in 9x9
       lines.push(
         <div
           key={`v-${i}`}
-          className="crop-grid-line crop-grid-line-vertical"
+          className={`crop-grid-line crop-grid-line-vertical ${isMainLine ? 'crop-grid-line-main' : ''}`}
           style={{
             left: `${xPercent}%`,
             backgroundColor: colors[cropColor],
@@ -429,10 +479,11 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     // Horizontal lines
     for (let i = 1; i < gridDivisions; i++) {
       const yPercent = (i / gridDivisions) * 100
+      const isMainLine = gridType === '9x9' && i % 3 === 0  // Every 3rd line is main in 9x9
       lines.push(
         <div
           key={`h-${i}`}
-          className="crop-grid-line crop-grid-line-horizontal"
+          className={`crop-grid-line crop-grid-line-horizontal ${isMainLine ? 'crop-grid-line-main' : ''}`}
           style={{
             top: `${yPercent}%`,
             backgroundColor: colors[cropColor],
@@ -497,7 +548,10 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
             <button
               className={`crop-control-button crop-color-button ${cropColor === 'white' ? 'active' : ''}`}
               onClick={() => setCropColor('white')}
-              style={{ backgroundColor: cropColor === 'white' ? colors.white : 'transparent', color: cropColor === 'white' ? '#000' : 'inherit' }}
+              style={{ 
+                backgroundColor: cropColor === 'white' ? colors.white : 'transparent',
+                color: cropColor === 'white' ? '#000' : '#00838f'
+              }}
             >
               White
             </button>
@@ -542,9 +596,14 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
           Drag to move • Arrow keys to nudge • +/- to resize
         </div>
         <div className="crop-actions">
-          <button className="crop-rotate-button" onClick={handleRotate} title="Rotate 90 degrees">
-            ↻ Rotate 90°
-          </button>
+          <div className="crop-rotate-buttons">
+            <button className="crop-rotate-button" onClick={handleRotateCounterClockwise} title="Rotate 90° counter-clockwise">
+              ↺ CCW
+            </button>
+            <button className="crop-rotate-button" onClick={handleRotate} title="Rotate 90° clockwise">
+              ↻ CW
+            </button>
+          </div>
           <button className="crop-cancel-button" onClick={onCancel}>
             Cancel
           </button>

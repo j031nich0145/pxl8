@@ -27,7 +27,8 @@ function PxlBatch() {
     imageDimensions: null,
     originalImageUrl: null,
     originalImageDimensions: null,
-    isTargetImage: false
+    isTargetImage: false,
+    currentIndex: 0
   })
   const [originalTargetImageUrl, setOriginalTargetImageUrl] = useState(null)
   const [darkMode, setDarkMode] = useState(() => {
@@ -143,7 +144,25 @@ function PxlBatch() {
   // Remove file from batch
   const handleRemoveFile = (index) => {
     const newFiles = files.filter((_, i) => i !== index)
+    const newProcessedUrls = { ...processedImageUrls }
+    const newResults = results.filter((_, i) => i !== index)
+    
+    // Remove the processed URL for this index and reindex remaining ones
+    delete newProcessedUrls[index]
+    const reindexedUrls = {}
+    Object.keys(newProcessedUrls).forEach(key => {
+      const keyNum = parseInt(key)
+      if (keyNum > index) {
+        reindexedUrls[keyNum - 1] = newProcessedUrls[key]
+      } else {
+        reindexedUrls[key] = newProcessedUrls[key]
+      }
+    })
+    
     setFiles(newFiles)
+    setProcessedImageUrls(reindexedUrls)
+    setResults(newResults)
+    
     // Save updated batch images to localStorage
     saveBatchImages(newFiles).catch(err => {
       console.error('Failed to save batch images:', err)
@@ -222,8 +241,8 @@ function PxlBatch() {
               const targetWidth = Math.max(1, Math.floor(finalWidth / pixelSize))
               const targetHeight = Math.max(1, Math.floor(finalHeight / pixelSize))
               
-              // Calculate multiplier (same as Pxl8.jsx)
-              const multiplier = 1.0 + (pixelSize / 100) * 2.0
+              // Always use multiplier of 1.0 to maintain original image dimensions
+              const multiplier = 1.0
               
               // Process image
               pixelateImage(
@@ -412,7 +431,7 @@ function PxlBatch() {
   }
 
   // Handle thumbnail click to open preview modal
-  const handleThumbnailClick = (imageUrl, imageName, imageDimensions) => {
+  const handleThumbnailClick = (imageUrl, imageName, imageDimensions, imageIndex) => {
     const isTargetImage = imageName === 'Target Image'
     
     setPreviewModal({
@@ -424,8 +443,65 @@ function PxlBatch() {
       originalImageDimensions: isTargetImage && pixelatedImageInfo?.originalDimensions 
         ? pixelatedImageInfo.originalDimensions 
         : null,
-      isTargetImage
+      isTargetImage,
+      currentIndex: imageIndex !== undefined ? imageIndex : 0
     })
+  }
+
+  // Handle preview navigation
+  const handlePreviewNavigate = (direction) => {
+    // Build list of all images (target + batch files)
+    const allImages = []
+    
+    // Add target image if it exists
+    if (pixelatedImageUrl) {
+      allImages.push({
+        url: pixelatedImageUrl,
+        name: 'Target Image',
+        dimensions: pixelatedImageInfo?.pixelatedDimensions || null,
+        originalUrl: originalTargetImageUrl,
+        originalDimensions: pixelatedImageInfo?.originalDimensions || null,
+        isTarget: true
+      })
+    }
+    
+    // Add batch files
+    files.forEach((file, index) => {
+      const result = results[index]
+      const processedUrl = processedImageUrls[index]
+      
+      allImages.push({
+        url: processedUrl || URL.createObjectURL(file),
+        name: file.name,
+        dimensions: result?.dimensions || null,
+        originalUrl: null,
+        originalDimensions: null,
+        isTarget: false
+      })
+    })
+    
+    const currentIndex = previewModal.currentIndex
+    let newIndex = currentIndex
+    
+    if (direction === 'prev' && currentIndex > 0) {
+      newIndex = currentIndex - 1
+    } else if (direction === 'next' && currentIndex < allImages.length - 1) {
+      newIndex = currentIndex + 1
+    }
+    
+    if (newIndex !== currentIndex) {
+      const newImage = allImages[newIndex]
+      setPreviewModal({
+        isOpen: true,
+        imageUrl: newImage.url,
+        imageName: newImage.name,
+        imageDimensions: newImage.dimensions,
+        originalImageUrl: newImage.originalUrl,
+        originalImageDimensions: newImage.originalDimensions,
+        isTargetImage: newImage.isTarget,
+        currentIndex: newIndex
+      })
+    }
   }
 
   // Handle closing preview modal
@@ -437,7 +513,8 @@ function PxlBatch() {
       imageDimensions: null,
       originalImageUrl: null,
       originalImageDimensions: null,
-      isTargetImage: false
+      isTargetImage: false,
+      currentIndex: 0
     })
   }
 
@@ -490,6 +567,9 @@ function PxlBatch() {
           isTargetImage={previewModal.isTargetImage}
           isOpen={previewModal.isOpen}
           onClose={handleCloseModal}
+          currentIndex={previewModal.currentIndex}
+          totalImages={(pixelatedImageUrl ? 1 : 0) + files.length}
+          onNavigate={handlePreviewNavigate}
         />
 
         {/* Blue Info Box */}

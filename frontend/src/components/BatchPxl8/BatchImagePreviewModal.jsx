@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './BatchImagePreviewModal.css'
 
-function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, originalImageUrl, originalImageDimensions, isTargetImage, isOpen, onClose }) {
+function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, originalImageUrl, originalImageDimensions, isTargetImage, isOpen, onClose, currentIndex, totalImages, onNavigate }) {
   const [viewMode, setViewMode] = useState('pixelated')
   // Reset view mode when modal opens/closes
   useEffect(() => {
@@ -10,21 +10,25 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
     }
   }, [isOpen])
 
-  // Handle ESC key press
+  // Handle keyboard navigation
   useEffect(() => {
     if (!isOpen) return
 
-    const handleEscape = (e) => {
+    const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         onClose()
+      } else if (e.key === 'ArrowLeft' && onNavigate && currentIndex > 0) {
+        onNavigate('prev')
+      } else if (e.key === 'ArrowRight' && onNavigate && currentIndex < totalImages - 1) {
+        onNavigate('next')
       }
     }
 
-    document.addEventListener('keydown', handleEscape)
+    document.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, onNavigate, currentIndex, totalImages])
 
   if (!isOpen || !imageUrl) return null
 
@@ -52,6 +56,28 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
         >
           ×
         </button>
+
+        {/* Navigation arrows */}
+        {totalImages > 1 && onNavigate && (
+          <>
+            <button 
+              className="batch-image-preview-nav batch-image-preview-nav-prev"
+              onClick={() => onNavigate('prev')}
+              disabled={currentIndex === 0}
+              title="Previous image (←)"
+            >
+              ‹
+            </button>
+            <button 
+              className="batch-image-preview-nav batch-image-preview-nav-next"
+              onClick={() => onNavigate('next')}
+              disabled={currentIndex === totalImages - 1}
+              title="Next image (→)"
+            >
+              ›
+            </button>
+          </>
+        )}
         
         {/* Toggle buttons for target image */}
         {showToggle && (
