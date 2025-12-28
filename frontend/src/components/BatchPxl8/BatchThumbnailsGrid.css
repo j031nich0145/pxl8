@@ -41,6 +41,7 @@ body.dark-mode .thumbnail-item {
   object-fit: contain;
   display: block;
   background: #fafafa;
+  transition: opacity 0.2s ease;
 }
 
 body.dark-mode .thumbnail-image {
@@ -67,7 +68,7 @@ body.dark-mode .thumbnail-image {
 .thumbnail-item:hover .thumbnail-overlay {
   opacity: 1;
   background: rgba(0, 0, 0, 0.5);
-  pointer-events: all;
+  /* Keep pointer-events: none to allow image clicks to pass through */
 }
 
 
@@ -87,6 +88,7 @@ body.dark-mode .thumbnail-image {
   transition: all 0.2s ease;
   padding: 0;
   line-height: 1;
+  pointer-events: auto; /* Buttons can be clicked even though overlay has pointer-events: none */
 }
 
 body.dark-mode .remove-thumbnail-button {
@@ -115,6 +117,10 @@ body.dark-mode .remove-thumbnail-button:hover:not(:disabled) {
   position: relative;
 }
 
+.target-thumbnail .thumbnail-image {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
 body.dark-mode .target-thumbnail {
   border-color: #1976d2;
   background: #2d2d2d;
@@ -123,7 +129,7 @@ body.dark-mode .target-thumbnail {
 .target-thumbnail:hover .thumbnail-overlay {
   opacity: 1;
   background: rgba(0, 0, 0, 0.5);
-  pointer-events: all;
+  /* Keep pointer-events: none to allow image clicks to pass through */
 }
 
 .upload-placeholder-button {

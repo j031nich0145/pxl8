@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import './BatchThumbnailsGrid.css'
 
-function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onUploadClick, onTargetImageChange, disabled, results, processedImageUrls, previewInfoCard }) {
+function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, onRemove, onUploadClick, onTargetImageChange, disabled, results, processedImageUrls, previewInfoCard, onThumbnailClick }) {
   const [urls, setUrls] = useState({})
+  const [isHoveringTarget, setIsHoveringTarget] = useState(false)
 
   useEffect(() => {
     const newUrls = {}
@@ -26,15 +27,34 @@ function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onUploadClick, o
         {targetImageUrl ? (
           <div className="thumbnail-item target-thumbnail" title="Target Image">
             <img 
-              src={targetImageUrl} 
+              src={isHoveringTarget && originalTargetImageUrl ? originalTargetImageUrl : targetImageUrl}
               alt="Target image"
               className="thumbnail-image"
+              onMouseEnter={() => setIsHoveringTarget(true)}
+              onMouseLeave={() => setIsHoveringTarget(false)}
+              onClick={() => {
+                if (onThumbnailClick) {
+                  const currentImageUrl = isHoveringTarget && originalTargetImageUrl ? originalTargetImageUrl : targetImageUrl
+                  const img = new Image()
+                  img.onload = () => {
+                    onThumbnailClick(currentImageUrl, 'Target Image', { width: img.width, height: img.height })
+                  }
+                  img.onerror = () => {
+                    onThumbnailClick(currentImageUrl, 'Target Image', null)
+                  }
+                  img.src = currentImageUrl
+                }
+              }}
+              style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
             />
             {onTargetImageChange && (
               <div className="thumbnail-overlay">
                 <button
                   className="remove-thumbnail-button"
-                  onClick={onTargetImageChange}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onTargetImageChange()
+                  }}
                   disabled={disabled}
                   title="Adjust Target Image"
                 >
@@ -70,12 +90,28 @@ function BatchThumbnailsGrid({ targetImageUrl, files, onRemove, onUploadClick, o
                 src={imageUrl} 
                 alt={file.name}
                 className="thumbnail-image"
+                onClick={() => {
+                  if (onThumbnailClick) {
+                    const img = new Image()
+                    img.onload = () => {
+                      onThumbnailClick(imageUrl, file.name, { width: img.width, height: img.height })
+                    }
+                    img.onerror = () => {
+                      onThumbnailClick(imageUrl, file.name, null)
+                    }
+                    img.src = imageUrl
+                  }
+                }}
+                style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
               />
             )}
             <div className="thumbnail-overlay">
               <button
                 className="remove-thumbnail-button"
-                onClick={() => onRemove(index)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRemove(index)
+                }}
                 disabled={disabled}
                 title="Remove"
               >

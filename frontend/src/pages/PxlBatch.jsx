@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import BatchThumbnailsGrid from '../components/BatchPxl8/BatchThumbnailsGrid'
 import BatchInfoBox from '../components/BatchPxl8/BatchInfoBox'
 import BatchPreviewInfoCard from '../components/BatchPxl8/BatchPreviewInfoCard'
+import BatchImagePreviewModal from '../components/BatchPxl8/BatchImagePreviewModal'
 import { getSettings } from '../utils/settings-manager'
-import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages } from '../utils/image-state-manager'
+import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages, getMainImageUrl } from '../utils/image-state-manager'
 import { pixelateImage } from '../utils/pixelation-client'
 import { normalizeTo72dpi } from '../utils/image-manipulation'
 import JSZip from 'jszip'
@@ -19,6 +20,13 @@ function PxlBatch() {
   const [processing, setProcessing] = useState(false)
   const [results, setResults] = useState([])
   const [processedImageUrls, setProcessedImageUrls] = useState({})
+  const [previewModal, setPreviewModal] = useState({
+    isOpen: false,
+    imageUrl: null,
+    imageName: null,
+    imageDimensions: null
+  })
+  const [originalTargetImageUrl, setOriginalTargetImageUrl] = useState(null)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('pxl8_dark_mode')
     return saved === 'true'
@@ -47,6 +55,12 @@ function PxlBatch() {
           setPixelatedImageUrl(url)
           setPixelatedImageInfo(info)
         }
+      }
+      
+      // Load original target image URL for hover functionality
+      const originalUrl = getMainImageUrl()
+      if (originalUrl) {
+        setOriginalTargetImageUrl(originalUrl)
       }
       
       // Load batch images
@@ -394,6 +408,26 @@ function PxlBatch() {
     console.log('Batch Crop functionality coming soon')
   }
 
+  // Handle thumbnail click to open preview modal
+  const handleThumbnailClick = (imageUrl, imageName, imageDimensions) => {
+    setPreviewModal({
+      isOpen: true,
+      imageUrl,
+      imageName,
+      imageDimensions
+    })
+  }
+
+  // Handle closing preview modal
+  const handleCloseModal = () => {
+    setPreviewModal({
+      isOpen: false,
+      imageUrl: null,
+      imageName: null,
+      imageDimensions: null
+    })
+  }
+
   const completedResults = results.filter(r => r.status === 'completed')
 
   return (
@@ -412,6 +446,7 @@ function PxlBatch() {
         {/* Batch Thumbnails Grid (includes target image as first item) */}
         <BatchThumbnailsGrid 
           targetImageUrl={pixelatedImageUrl}
+          originalTargetImageUrl={originalTargetImageUrl}
           files={files} 
           onRemove={handleRemoveFile}
           onUploadClick={handleUploadClick}
@@ -419,6 +454,7 @@ function PxlBatch() {
           disabled={processing}
           results={results}
           processedImageUrls={processedImageUrls}
+          onThumbnailClick={handleThumbnailClick}
           previewInfoCard={
             results.length > 0 && !processing && completedResults.length > 0 ? (
               <BatchPreviewInfoCard
@@ -429,6 +465,15 @@ function PxlBatch() {
               />
             ) : null
           }
+        />
+
+        {/* Image Preview Modal */}
+        <BatchImagePreviewModal
+          imageUrl={previewModal.imageUrl}
+          imageName={previewModal.imageName}
+          imageDimensions={previewModal.imageDimensions}
+          isOpen={previewModal.isOpen}
+          onClose={handleCloseModal}
         />
 
         {/* Blue Info Box */}
