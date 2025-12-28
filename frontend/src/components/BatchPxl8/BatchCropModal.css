@@ -233,6 +233,19 @@ body.dark-mode .batch-crop-preview-container {
   transform: translate(-50%, -50%);
 }
 
+/* Smallest Image Boundary Indicator */
+.batch-crop-bounds-indicator {
+  position: absolute;
+  border: 2px solid rgba(180, 180, 180, 0.7);
+  pointer-events: none;
+  z-index: 500;
+  box-sizing: border-box;
+}
+
+body.dark-mode .batch-crop-bounds-indicator {
+  border-color: rgba(200, 200, 200, 0.5);
+}
+
 /* Crop Mask and Overlay */
 .batch-crop-mask {
   position: absolute;

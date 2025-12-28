@@ -222,6 +222,19 @@ function BatchCropModal({ files, onApply, onCancel }) {
     return imageRect.width / referenceDimensions.width
   }
 
+  // Calculate per-image display size relative to smallest image
+  const getImageDisplaySize = (imageDimensions) => {
+    if (!referenceDimensions.width || !imageRect.width) {
+      return { width: 0, height: 0 }
+    }
+    // Scale factor from reference (smallest) image pixels to display pixels
+    const scale = imageRect.width / referenceDimensions.width
+    return {
+      width: imageDimensions.width * scale,
+      height: imageDimensions.height * scale
+    }
+  }
+
   // Handle mouse down on crop box
   const handleMouseDown = (e) => {
     e.preventDefault()
@@ -580,6 +593,7 @@ function BatchCropModal({ files, onApply, onCancel }) {
               if (!image || !image.included) return null
               
               const opacity = calculateOpacity(stackIndex)
+              const displaySize = getImageDisplaySize(image.dimensions)
               
               return (
                 <div
@@ -595,14 +609,27 @@ function BatchCropModal({ files, onApply, onCancel }) {
                     alt={image.file.name}
                     className="batch-crop-stack-image"
                     style={{
-                      width: imageRect.width > 0 ? `${imageRect.width}px` : 'auto',
-                      height: imageRect.height > 0 ? `${imageRect.height}px` : 'auto',
+                      width: displaySize.width > 0 ? `${displaySize.width}px` : 'auto',
+                      height: displaySize.height > 0 ? `${displaySize.height}px` : 'auto',
                     }}
                   />
                 </div>
               )
             })}
             
+            {/* Smallest Image Boundary Indicator */}
+            {imageRect.width > 0 && (
+              <div 
+                className="batch-crop-bounds-indicator"
+                style={{
+                  width: `${imageRect.width}px`,
+                  height: `${imageRect.height}px`,
+                  left: `${imageRect.left}px`,
+                  top: `${imageRect.top}px`,
+                }}
+              />
+            )}
+
             {/* Crop Overlay */}
             {imageRect.width > 0 && (
               <div 
