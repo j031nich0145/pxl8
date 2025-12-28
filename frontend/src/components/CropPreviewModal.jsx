@@ -27,19 +27,39 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
   // Update image rect when image loads or resizes
   useEffect(() => {
     const updateImageRect = () => {
-      if (imageRef.current && containerRef.current) {
-        const imgRect = imageRef.current.getBoundingClientRect()
+      if (imageRef.current && containerRef.current && imageDimensions.width) {
         const containerRect = containerRef.current.getBoundingClientRect()
+        
+        // Calculate actual rendered image dimensions with object-fit: contain
+        const imageAspectRatio = imageDimensions.width / imageDimensions.height
+        const containerAspectRatio = containerRect.width / containerRect.height
+        
+        let renderedWidth, renderedHeight, offsetX, offsetY
+        
+        if (imageAspectRatio > containerAspectRatio) {
+          // Image wider - constrained by container width
+          renderedWidth = containerRect.width
+          renderedHeight = containerRect.width / imageAspectRatio
+          offsetX = 0
+          offsetY = (containerRect.height - renderedHeight) / 2
+        } else {
+          // Image taller - constrained by container height
+          renderedHeight = containerRect.height
+          renderedWidth = containerRect.height * imageAspectRatio
+          offsetX = (containerRect.width - renderedWidth) / 2
+          offsetY = 0
+        }
+        
         setImageRect({
-          width: imgRect.width,
-          height: imgRect.height,
-          left: imgRect.left - containerRect.left,
-          top: imgRect.top - containerRect.top
+          width: renderedWidth,
+          height: renderedHeight,
+          left: offsetX,
+          top: offsetY
         })
       }
     }
 
-    if (originalUrl && imageRef.current) {
+    if (originalUrl && imageRef.current && imageDimensions.width) {
       const img = imageRef.current
       if (img.complete) {
         updateImageRect()
@@ -50,9 +70,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
       window.addEventListener('resize', updateImageRect)
       return () => window.removeEventListener('resize', updateImageRect)
     }
-  }, [originalUrl])
+  }, [originalUrl, imageDimensions.width, imageDimensions.height])
 
-  // Load image and calculate initial crop
+  // Load image and set dimensions (crop calculation happens after imageRect is set)
   useEffect(() => {
     if (originalFile) {
       const url = URL.createObjectURL(originalFile)
@@ -60,32 +80,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
 
       const img = new Image()
       img.onload = () => {
-        const width = img.width
-        const height = img.height
-        setImageDimensions({ width, height })
-
-        // Calculate initial crop size (80% of image, maintaining aspect ratio)
-        const targetRatio = getAspectRatio()
-        const imageRatio = width / height
-
-        let overlayWidth, overlayHeight
-        if (imageRatio > targetRatio) {
-          // Image wider - constrain by height
-          overlayHeight = height * 0.8
-          overlayWidth = overlayHeight * targetRatio
-        } else {
-          // Image taller - constrain by width
-          overlayWidth = width * 0.8
-          overlayHeight = overlayWidth / targetRatio
-        }
-
-        // Center the crop
-        const cropX = (width - overlayWidth) / 2
-        const cropY = (height - overlayHeight) / 2
-
-        setCropSize({ width: overlayWidth, height: overlayHeight })
-        setCropPosition({ x: cropX, y: cropY })
-        setCurrentAspectRatio(targetRatio)
+        setImageDimensions({ width: img.width, height: img.height })
+        // Don't calculate crop here - wait for imageRect to be set
+        // Crop calculation will happen in the imageRect-based useEffect
       }
       img.src = url
 
@@ -94,6 +91,59 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
       }
     }
   }, [originalFile, aspectRatio])
+
+  // Calculate optimal crop size after image is displayed and imageRect is known
+  useEffect(() => {
+    if (!imageDimensions.width || !imageRect.width || cropSize.width > 0) return
+    
+    const targetRatio = getAspectRatio()
+    const displayedImageRatio = imageRect.width / imageRect.height
+    
+    console.log('CropPreviewModal: Calculating optimal crop size', {
+      imageDimensions,
+      imageRect,
+      targetRatio,
+      displayedImageRatio
+    })
+    
+    // Calculate crop box size in display coordinates to maximize width
+    let cropBoxDisplayWidth, cropBoxDisplayHeight
+    
+    if (displayedImageRatio > targetRatio) {
+      // Image wider than target - constrain by height
+      cropBoxDisplayHeight = imageRect.height
+      cropBoxDisplayWidth = cropBoxDisplayHeight * targetRatio
+    } else {
+      // Image taller than target - constrain by width
+      cropBoxDisplayWidth = imageRect.width
+      cropBoxDisplayHeight = cropBoxDisplayWidth / targetRatio
+    }
+    
+    // Convert to image pixel coordinates
+    const scale = imageRect.width / imageDimensions.width
+    const cropWidth = cropBoxDisplayWidth / scale
+    const cropHeight = cropBoxDisplayHeight / scale
+    
+    // Ensure crop fits within image bounds (in case of rounding errors)
+    const finalCropWidth = Math.min(cropWidth, imageDimensions.width)
+    const finalCropHeight = Math.min(cropHeight, imageDimensions.height)
+    
+    // Center the crop
+    const cropX = (imageDimensions.width - finalCropWidth) / 2
+    const cropY = (imageDimensions.height - finalCropHeight) / 2
+    
+    console.log('CropPreviewModal: Setting crop', {
+      finalCropWidth,
+      finalCropHeight,
+      cropX,
+      cropY,
+      scale
+    })
+    
+    setCropSize({ width: finalCropWidth, height: finalCropHeight })
+    setCropPosition({ x: cropX, y: cropY })
+    setCurrentAspectRatio(targetRatio)
+  }, [imageDimensions, imageRect, aspectRatio, cropSize.width])
 
   // Apply crop function
   const handleApplyCrop = () => {
@@ -283,9 +333,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     const imgRect = imageRef.current?.getBoundingClientRect()
     if (imgRect) {
       const scale = getScale()
-      // Calculate mouse position relative to image
-      const mouseX = (e.clientX - imgRect.left) / scale
-      const mouseY = (e.clientY - imgRect.top) / scale
+      // Calculate mouse position relative to image (accounting for letterbox offsets)
+      const mouseX = (e.clientX - imgRect.left - imageRect.left) / scale
+      const mouseY = (e.clientY - imgRect.top - imageRect.top) / scale
       
       setDragStart({
         x: mouseX,
@@ -309,12 +359,11 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
       e.stopPropagation()
 
       const imgRect = imageRef.current.getBoundingClientRect()
-      const displayWidth = imageRef.current.offsetWidth
-      const scale = displayWidth / imageDimensions.width
+      const scale = getScale()
       
-      // Calculate mouse position in image coordinates
-      const mouseX = (e.clientX - imgRect.left) / scale
-      const mouseY = (e.clientY - imgRect.top) / scale
+      // Calculate mouse position in image coordinates (accounting for letterbox offsets)
+      const mouseX = (e.clientX - imgRect.left - imageRect.left) / scale
+      const mouseY = (e.clientY - imgRect.top - imageRect.top) / scale
       
       // Calculate new crop position
       const newX = mouseX - dragOffset.x
@@ -343,12 +392,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
   // Calculate scale factor for display
   const getScale = () => {
     if (!imageDimensions.width || imageRect.width === 0) {
-      console.warn('CropPreviewModal: getScale() returning 1 (fallback)', { imageDimensions, imageRect })
       return 1
     }
-    const scale = imageRect.width / imageDimensions.width
-    console.log('CropPreviewModal: getScale()', { scale, imageRectWidth: imageRect.width, imageDimensionsWidth: imageDimensions.width })
-    return scale
+    return imageRect.width / imageDimensions.width
   }
 
   // Color values
