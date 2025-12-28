@@ -18,14 +18,28 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
     const currentDimensions = viewMode === 'pixelated' ? imageDimensions : originalImageDimensions
     
     if (currentDimensions && currentDimensions.width) {
+      // Use provided dimensions
       setDisplayedDimensions(currentDimensions)
     } else if (currentImageUrl) {
-      // Load image to get dimensions
+      // Reset and detect from image
+      setDisplayedDimensions(null)
+      
       const img = new Image()
       img.onload = () => {
         setDisplayedDimensions({ width: img.width, height: img.height })
       }
+      img.onerror = () => {
+        console.error('Failed to load image for dimension detection')
+        setDisplayedDimensions(null)
+      }
       img.src = currentImageUrl
+      
+      return () => {
+        img.onload = null
+        img.onerror = null
+      }
+    } else {
+      setDisplayedDimensions(null)
     }
   }, [imageUrl, originalImageUrl, imageDimensions, originalImageDimensions, viewMode])
 
@@ -68,7 +82,21 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
   const handleDownload = () => {
     const link = document.createElement('a')
     link.href = currentImageUrl
-    link.download = imageName || 'image.png'
+    
+    // Add pxl8_ prefix if downloading pixelated version
+    let filename = imageName || 'image.png'
+    if (viewMode === 'pixelated') {
+      const lastDot = filename.lastIndexOf('.')
+      if (lastDot > 0) {
+        const name = filename.substring(0, lastDot)
+        const ext = filename.substring(lastDot)
+        filename = `pxl8_${name}${ext}`
+      } else {
+        filename = `pxl8_${filename}`
+      }
+    }
+    
+    link.download = filename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -130,7 +158,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
             onClick={handleDownload}
             title="Download image"
           >
-            ⬇ Download
+            ⬇
           </button>
         </div>
 

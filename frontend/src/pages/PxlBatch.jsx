@@ -190,7 +190,9 @@ function PxlBatch() {
       progress: 0,
       status: 'processing',
       processedBlob: null,
-      error: null
+      error: null,
+      originalDimensions: null,
+      pixelatedDimensions: null
     }))
     setResults(initialResults)
     
@@ -206,6 +208,16 @@ function PxlBatch() {
         await new Promise((resolve) => {
           img.onload = async () => {
             try {
+              // Store original dimensions immediately
+              setResults(prev => {
+                const updated = [...prev]
+                updated[i] = {
+                  ...updated[i],
+                  originalDimensions: { width: img.width, height: img.height }
+                }
+                return updated
+              })
+              
               // Apply crunch operations if needed
               let processedFile = file
               let finalWidth = img.width
@@ -258,18 +270,49 @@ function PxlBatch() {
                     return updated
                   })
                 }
-              ).then(blob => {
+              ).then(async blob => {
                 const blobUrl = URL.createObjectURL(blob)
-                setResults(prev => {
-                  const updated = [...prev]
-                  updated[i] = {
-                    ...updated[i],
-                    processedBlob: blob,
-                    status: 'completed',
-                    progress: 100
+                
+                // Detect pixelated image dimensions
+                const pixelatedImg = new Image()
+                await new Promise((resolvePixelated) => {
+                  pixelatedImg.onload = () => {
+                    const pixelatedDimensions = {
+                      width: pixelatedImg.width,
+                      height: pixelatedImg.height
+                    }
+                    
+                    setResults(prev => {
+                      const updated = [...prev]
+                      updated[i] = {
+                        ...updated[i],
+                        processedBlob: blob,
+                        status: 'completed',
+                        progress: 100,
+                        pixelatedDimensions
+                      }
+                      return updated
+                    })
+                    
+                    resolvePixelated()
                   }
-                  return updated
+                  pixelatedImg.onerror = () => {
+                    console.error('Failed to load pixelated image for dimension detection')
+                    setResults(prev => {
+                      const updated = [...prev]
+                      updated[i] = {
+                        ...updated[i],
+                        processedBlob: blob,
+                        status: 'completed',
+                        progress: 100
+                      }
+                      return updated
+                    })
+                    resolvePixelated()
+                  }
+                  pixelatedImg.src = blobUrl
                 })
+                
                 // Store processed image URL for in-place replacement
                 setProcessedImageUrls(prev => ({
                   ...prev,
@@ -434,15 +477,33 @@ function PxlBatch() {
   const handleThumbnailClick = (imageUrl, imageName, imageDimensions, imageIndex) => {
     const isTargetImage = imageName === 'Target Image'
     
+    // For batch images, get dimensions from results
+    let originalUrl = null
+    let originalDims = null
+    let pixelatedDims = imageDimensions  // passed from thumbnail
+    
+    if (isTargetImage) {
+      originalUrl = originalTargetImageUrl
+      originalDims = pixelatedImageInfo?.originalDimensions || null
+      pixelatedDims = pixelatedImageInfo?.pixelatedDimensions || null
+    } else if (imageIndex !== undefined) {
+      // Calculate batch file index
+      const fileIndex = pixelatedImageUrl ? imageIndex - 1 : imageIndex
+      if (fileIndex >= 0 && fileIndex < files.length) {
+        const result = results[fileIndex]
+        originalUrl = URL.createObjectURL(files[fileIndex])
+        originalDims = result?.originalDimensions || null
+        pixelatedDims = result?.pixelatedDimensions || null
+      }
+    }
+    
     setPreviewModal({
       isOpen: true,
       imageUrl,
       imageName,
-      imageDimensions,
-      originalImageUrl: isTargetImage ? originalTargetImageUrl : null,
-      originalImageDimensions: isTargetImage && pixelatedImageInfo?.originalDimensions 
-        ? pixelatedImageInfo.originalDimensions 
-        : null,
+      imageDimensions: pixelatedDims,
+      originalImageUrl: originalUrl,
+      originalImageDimensions: originalDims,
       isTargetImage,
       currentIndex: imageIndex !== undefined ? imageIndex : 0
     })
@@ -473,9 +534,9 @@ function PxlBatch() {
       allImages.push({
         url: processedUrl || URL.createObjectURL(file),
         name: file.name,
-        dimensions: result?.dimensions || null,
-        originalUrl: URL.createObjectURL(file), // Original file URL
-        originalDimensions: null, // Will be detected by modal
+        dimensions: result?.pixelatedDimensions || null,
+        originalUrl: URL.createObjectURL(file),
+        originalDimensions: result?.originalDimensions || null,
         isTarget: false
       })
     })
