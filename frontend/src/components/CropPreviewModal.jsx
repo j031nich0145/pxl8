@@ -16,6 +16,13 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel, onRotat
   const imageRef = useRef(null)
   const containerRef = useRef(null)
 
+  // Aspect ratio options
+  const aspectRatioOptions = [
+    { value: '1:1', label: '1:1', ratio: 1 },
+    { value: '3:2', label: '3:2', ratio: 3/2 },
+    { value: '4:3', label: '4:3', ratio: 4/3 }
+  ]
+
   // Calculate aspect ratio value
   const getAspectRatio = () => {
     if (aspectRatio === '1:1') return 1
@@ -172,6 +179,81 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel, onRotat
     }
   }
 
+  // Handle swapping crop box aspect ratio (e.g., 3:2 becomes 2:3)
+  const handleSwapAspectRatio = () => {
+    if (!currentAspectRatio || currentAspectRatio === 1) {
+      // 1:1 stays the same
+      return
+    }
+    
+    // Swap dimensions
+    const newWidth = cropSize.height
+    const newHeight = cropSize.width
+    
+    // Invert aspect ratio
+    const newAspectRatio = 1 / currentAspectRatio
+    setCurrentAspectRatio(newAspectRatio)
+    
+    // Check if new dimensions fit at current position
+    let newX = cropPosition.x
+    let newY = cropPosition.y
+    
+    // If doesn't fit, center it
+    if (newX + newWidth > imageDimensions.width || newY + newHeight > imageDimensions.height) {
+      newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
+      newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
+    }
+    
+    setCropSize({ width: newWidth, height: newHeight })
+    setCropPosition({ x: newX, y: newY })
+  }
+
+  // Handle aspect ratio change (live switching)
+  const handleAspectRatioChange = (newRatioValue) => {
+    const newRatio = aspectRatioOptions.find(opt => opt.value === newRatioValue).ratio
+    setCurrentAspectRatio(newRatio)
+    
+    // Recalculate crop size to fit new aspect ratio
+    // Try to maintain similar area
+    const currentArea = cropSize.width * cropSize.height
+    let newWidth = Math.sqrt(currentArea * newRatio)
+    let newHeight = newWidth / newRatio
+    
+    // Constrain to image bounds
+    const maxWidthByImage = imageDimensions.width
+    const maxHeightByImage = imageDimensions.height
+    const maxWidthByRatio = maxHeightByImage * newRatio
+    const maxHeightByRatio = maxWidthByImage / newRatio
+    
+    const absoluteMaxWidth = Math.min(maxWidthByImage, maxWidthByRatio)
+    const absoluteMaxHeight = Math.min(maxHeightByImage, maxHeightByRatio)
+    
+    if (newWidth > absoluteMaxWidth) newWidth = absoluteMaxWidth
+    if (newHeight > absoluteMaxHeight) newHeight = absoluteMaxHeight
+    newWidth = Math.min(newWidth, newHeight * newRatio)
+    newHeight = newWidth / newRatio
+    
+    // Ensure minimum size
+    if (newWidth < 20) newWidth = 20
+    if (newHeight < 20) newHeight = 20
+    newWidth = Math.max(20, newHeight * newRatio)
+    newHeight = newWidth / newRatio
+    
+    // Maintain position if possible, otherwise center
+    let newX = cropPosition.x
+    let newY = cropPosition.y
+    
+    if (newX + newWidth > imageDimensions.width) {
+      newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
+    }
+    if (newY + newHeight > imageDimensions.height) {
+      newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
+    }
+    
+    setCropSize({ width: newWidth, height: newHeight })
+    setCropPosition({ x: newX, y: newY })
+  }
+
   // Handle scaling with keyboard
   const handleScale = (direction) => {
     if (!currentAspectRatio || !imageDimensions.width) return
@@ -200,9 +282,23 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel, onRotat
     newWidth = Math.min(newWidth, newHeight * currentAspectRatio)
     newHeight = newWidth / currentAspectRatio
     
-    // Center the crop box
-    let newX = Math.max(0, (imageDimensions.width - newWidth) / 2)
-    let newY = Math.max(0, (imageDimensions.height - newHeight) / 2)
+    // Maintain current position, adjust only if out of bounds
+    let newX = cropPosition.x
+    let newY = cropPosition.y
+    
+    // If crop would extend beyond right edge, shift left
+    if (newX + newWidth > imageDimensions.width) {
+      newX = imageDimensions.width - newWidth
+    }
+    
+    // If crop would extend beyond bottom edge, shift up
+    if (newY + newHeight > imageDimensions.height) {
+      newY = imageDimensions.height - newHeight
+    }
+    
+    // Ensure position stays within bounds
+    newX = Math.max(0, newX)
+    newY = Math.max(0, newY)
     
     setCropSize({ width: newWidth, height: newHeight })
     setCropPosition({ x: newX, y: newY })
@@ -394,6 +490,18 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel, onRotat
         {/* Controls Bar */}
         <div className="crop-controls-bar">
           <div className="crop-control-group">
+            <span className="crop-control-label">Ratio:</span>
+            {aspectRatioOptions.map(option => (
+              <button
+                key={option.value}
+                className={`crop-control-button ${currentAspectRatio === option.ratio ? 'active' : ''}`}
+                onClick={() => handleAspectRatioChange(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className="crop-control-group">
             <span className="crop-control-label">Grid:</span>
             <button
               className={`crop-control-button ${gridType === '3x3' ? 'active' : ''}`}
@@ -483,6 +591,14 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel, onRotat
         <div className="crop-actions">
           <button className="crop-rotate-button" onClick={handleRotateImage} title="Rotate image 90° clockwise">
             ↻ Rotate Image
+          </button>
+          <button 
+            className="crop-rotate-button" 
+            onClick={handleSwapAspectRatio} 
+            disabled={currentAspectRatio === 1}
+            title="Rotate crop box (landscape ↔ portrait)"
+          >
+            ↻ Rotate Crop
           </button>
           <button className="crop-cancel-button" onClick={onCancel}>
             Cancel
