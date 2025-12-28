@@ -99,6 +99,12 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
   const handleApplyCrop = () => {
     if (onCrop && originalFile) {
       // cropPosition and cropSize are already in image pixel coordinates
+      console.log('CropPreviewModal: handleApplyCrop() called', {
+        cropPosition,
+        cropSize,
+        imageDimensions,
+        scale: getScale()
+      })
       onCrop(
         cropPosition.x,
         cropPosition.y,
@@ -336,8 +342,13 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
 
   // Calculate scale factor for display
   const getScale = () => {
-    if (!imageDimensions.width || imageRect.width === 0) return 1
-    return imageRect.width / imageDimensions.width
+    if (!imageDimensions.width || imageRect.width === 0) {
+      console.warn('CropPreviewModal: getScale() returning 1 (fallback)', { imageDimensions, imageRect })
+      return 1
+    }
+    const scale = imageRect.width / imageDimensions.width
+    console.log('CropPreviewModal: getScale()', { scale, imageRectWidth: imageRect.width, imageDimensionsWidth: imageDimensions.width })
+    return scale
   }
 
   // Color values

@@ -40,6 +40,9 @@ function Pxl8() {
   // Crop and crunch state tracking
   const [cropState, setCropState] = useState(null) // { aspectRatio, cropX, cropY, cropWidth, cropHeight } or null
   const [crunchCount, setCrunchCount] = useState(0) // 0, 1, or 2
+  
+  // Restoration flag - prevents liveUpdate from firing during initial state restoration
+  const [isRestoring, setIsRestoring] = useState(true)
 
   const handleLiveUpdateChange = (value) => {
     setLiveUpdate(value)
@@ -57,8 +60,10 @@ function Pxl8() {
   // Restore main image state and pixelation settings on mount (if coming from Batch page)
   useEffect(() => {
     const restoreImageState = async () => {
+      console.log('Pxl8: Starting restoration...')
       const savedImage = await loadMainImage()
       if (savedImage) {
+        console.log('Pxl8: Restored main image', savedImage.dimensions)
         setUploadedFile(savedImage.file)
         setImageDimensions(savedImage.dimensions)
         
@@ -76,6 +81,7 @@ function Pxl8() {
       
       if (pixelatedData && pixelatedData.imageInfo) {
         const info = pixelatedData.imageInfo
+        console.log('Pxl8: Restoring pixelation settings from imageInfo', info)
         // Restore pixelation method (prefer pixelatedImageInfo, fallback to settings)
         if (info.pixelationMethod) {
           setPixelationMethod(info.pixelationMethod)
@@ -104,9 +110,11 @@ function Pxl8() {
         }
         // Restore pixelated image URL
         if (pixelatedData.imageUrl) {
+          console.log('Pxl8: Restoring processedImageUrl')
           setProcessedImageUrl(pixelatedData.imageUrl)
         }
       } else if (savedSettings) {
+        console.log('Pxl8: Restoring settings from localStorage', savedSettings)
         // No pixelated image, restore from saved settings
         if (savedSettings.pixelationLevel !== undefined) {
           setPixelationLevel(savedSettings.pixelationLevel)
@@ -118,6 +126,13 @@ function Pxl8() {
           setLiveUpdate(savedSettings.liveUpdate)
         }
       }
+      
+      // Add a small delay to ensure all state updates are batched before clearing restoration flag
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mark restoration complete to allow liveUpdate to function normally
+      console.log('Pxl8: Restoration complete, clearing isRestoring flag')
+      setIsRestoring(false)
     }
     restoreImageState()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,6 +215,7 @@ function Pxl8() {
   }
 
   const handleCrop = useCallback(async (aspectRatio, cropX, cropY, cropWidth, cropHeight) => {
+    console.log('Pxl8: handleCrop() called', { aspectRatio, cropX, cropY, cropWidth, cropHeight })
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -233,7 +249,7 @@ function Pxl8() {
     } catch (err) {
       setError(err.message || 'Crop failed')
     }
-  }, [uploadedFile, liveUpdate, addToHistory])
+  }, [uploadedFile, addToHistory])
 
   const handleCrunch = useCallback(async () => {
     if (!uploadedFile) {
@@ -274,7 +290,7 @@ function Pxl8() {
     } catch (err) {
       setError(err.message || 'Crunch failed')
     }
-  }, [uploadedFile, liveUpdate, addToHistory])
+  }, [uploadedFile, addToHistory])
 
   const handle2xCrunch = useCallback(async () => {
     if (!uploadedFile) {
@@ -317,7 +333,7 @@ function Pxl8() {
     } catch (err) {
       setError(err.message || '2x Crunch failed')
     }
-  }, [uploadedFile, liveUpdate, addToHistory])
+  }, [uploadedFile, addToHistory])
 
   // Calculate pixel size from pixelation level
   // Maps to pixel block size (1x1 to 100x100) using exponential function
@@ -396,7 +412,11 @@ function Pxl8() {
         originalDimensions: imageDimensions,
         pixelSize: pixelSize,
         targetDimensions: { width: targetWidth, height: targetHeight },
-        pixelationMethod: pixelationMethod
+        pixelationMethod: pixelationMethod,
+        pixelationLevel: overridePixelationLevel !== null ? overridePixelationLevel : pixelationLevel,
+        liveUpdate: liveUpdate,
+        cropState: cropState,
+        crunchCount: crunchCount
       }
       await savePixelatedImage(blob, imageInfo)  // Pass blob, not URL
     } catch (err) {
@@ -409,9 +429,17 @@ function Pxl8() {
 
   // Debounced auto-process for live update
   const debounceTimerRef = useRef(null)
+  const handleProcessRef = useRef(handleProcess)
+  
+  // Keep ref updated
+  useEffect(() => {
+    handleProcessRef.current = handleProcess
+  }, [handleProcess])
   
   useEffect(() => {
-    if (liveUpdate && uploadedFile && !processing) {
+    // Don't trigger liveUpdate during initial restoration
+    if (liveUpdate && uploadedFile && !processing && !isRestoring) {
+      console.log('Pxl8: LiveUpdate triggered', { liveUpdate, uploadedFile: !!uploadedFile, processing, isRestoring, pixelationLevel, pixelationMethod })
       // Clear existing timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
@@ -419,7 +447,8 @@ function Pxl8() {
       
       // Set new timer
       debounceTimerRef.current = setTimeout(() => {
-        handleProcess()
+        console.log('Pxl8: LiveUpdate debounce complete, calling handleProcess()')
+        handleProcessRef.current()
       }, 300) // 300ms debounce
       
       return () => {
@@ -427,8 +456,10 @@ function Pxl8() {
           clearTimeout(debounceTimerRef.current)
         }
       }
+    } else if (isRestoring) {
+      console.log('Pxl8: LiveUpdate skipped during restoration', { liveUpdate, uploadedFile: !!uploadedFile, processing, isRestoring })
     }
-  }, [liveUpdate, pixelationLevel, pixelationMethod, uploadedFile, handleProcess, processing, cropState, crunchCount])
+  }, [liveUpdate, pixelationLevel, pixelationMethod, uploadedFile, cropState, crunchCount, isRestoring])
 
   // Cleanup object URLs on unmount
   useEffect(() => {
