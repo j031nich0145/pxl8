@@ -10,6 +10,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [currentAspectRatio, setCurrentAspectRatio] = useState(null)
+  const [gridType, setGridType] = useState('off') // '3x3' | '9x9' | 'off'
+  const [cropColor, setCropColor] = useState('blue') // 'blue' | 'black' | 'white'
+  const [imageRect, setImageRect] = useState({ width: 0, height: 0, left: 0, top: 0 })
   const imageRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -20,6 +23,34 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     if (aspectRatio === '4:3') return 4 / 3
     return 1
   }
+
+  // Update image rect when image loads or resizes
+  useEffect(() => {
+    const updateImageRect = () => {
+      if (imageRef.current && containerRef.current) {
+        const imgRect = imageRef.current.getBoundingClientRect()
+        const containerRect = containerRef.current.getBoundingClientRect()
+        setImageRect({
+          width: imgRect.width,
+          height: imgRect.height,
+          left: imgRect.left - containerRect.left,
+          top: imgRect.top - containerRect.top
+        })
+      }
+    }
+
+    if (originalUrl && imageRef.current) {
+      const img = imageRef.current
+      if (img.complete) {
+        updateImageRect()
+      } else {
+        img.onload = updateImageRect
+      }
+      
+      window.addEventListener('resize', updateImageRect)
+      return () => window.removeEventListener('resize', updateImageRect)
+    }
+  }, [originalUrl])
 
   // Load image and calculate initial crop
   useEffect(() => {
@@ -283,6 +314,52 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     return displayWidth / imageDimensions.width
   }
 
+  // Color values
+  const colors = {
+    blue: '#4dd0e1',
+    black: '#000000',
+    white: '#ffffff'
+  }
+
+  // Render grid lines
+  const renderGridLines = () => {
+    if (gridType === 'off') return null
+
+    const gridDivisions = gridType === '3x3' ? 3 : 9
+    const lines = []
+
+    // Vertical lines
+    for (let i = 1; i < gridDivisions; i++) {
+      const xPercent = (i / gridDivisions) * 100
+      lines.push(
+        <div
+          key={`v-${i}`}
+          className="crop-grid-line crop-grid-line-vertical"
+          style={{
+            left: `${xPercent}%`,
+            backgroundColor: colors[cropColor],
+          }}
+        />
+      )
+    }
+
+    // Horizontal lines
+    for (let i = 1; i < gridDivisions; i++) {
+      const yPercent = (i / gridDivisions) * 100
+      lines.push(
+        <div
+          key={`h-${i}`}
+          className="crop-grid-line crop-grid-line-horizontal"
+          style={{
+            top: `${yPercent}%`,
+            backgroundColor: colors[cropColor],
+          }}
+        />
+      )
+    }
+
+    return <>{lines}</>
+  }
 
   if (!originalUrl) return null
 
@@ -295,25 +372,86 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
   return (
     <div className="crop-modal-overlay">
       <div className="crop-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="crop-preview-container" ref={containerRef}>
-          <img
-            ref={imageRef}
-            src={originalUrl}
-            alt="Crop preview"
-            className="crop-preview-image"
-          />
-          <div className="crop-mask">
-            <div
-              className="crop-overlay"
-              style={{
-                left: `${displayX}px`,
-                top: `${displayY}px`,
-                width: `${displayWidth}px`,
-                height: `${displayHeight}px`,
-              }}
-              onMouseDown={handleMouseDown}
+        {/* Controls Bar */}
+        <div className="crop-controls-bar">
+          <div className="crop-control-group">
+            <span className="crop-control-label">Grid:</span>
+            <button
+              className={`crop-control-button ${gridType === '3x3' ? 'active' : ''}`}
+              onClick={() => setGridType('3x3')}
             >
-              <div className="crop-handle crop-handle-center" />
+              3×3
+            </button>
+            <button
+              className={`crop-control-button ${gridType === '9x9' ? 'active' : ''}`}
+              onClick={() => setGridType('9x9')}
+            >
+              9×9
+            </button>
+            <button
+              className={`crop-control-button ${gridType === 'off' ? 'active' : ''}`}
+              onClick={() => setGridType('off')}
+            >
+              Off
+            </button>
+          </div>
+          <div className="crop-control-group">
+            <span className="crop-control-label">Color:</span>
+            <button
+              className={`crop-control-button crop-color-button ${cropColor === 'blue' ? 'active' : ''}`}
+              onClick={() => setCropColor('blue')}
+              style={{ backgroundColor: cropColor === 'blue' ? colors.blue : 'transparent' }}
+            >
+              Blue
+            </button>
+            <button
+              className={`crop-control-button crop-color-button ${cropColor === 'black' ? 'active' : ''}`}
+              onClick={() => setCropColor('black')}
+              style={{ backgroundColor: cropColor === 'black' ? colors.black : 'transparent' }}
+            >
+              Black
+            </button>
+            <button
+              className={`crop-control-button crop-color-button ${cropColor === 'white' ? 'active' : ''}`}
+              onClick={() => setCropColor('white')}
+              style={{ backgroundColor: cropColor === 'white' ? colors.white : 'transparent', color: cropColor === 'white' ? '#000' : 'inherit' }}
+            >
+              White
+            </button>
+          </div>
+        </div>
+
+        <div className="crop-preview-container" ref={containerRef}>
+          <div className="crop-image-wrapper">
+            <img
+              ref={imageRef}
+              src={originalUrl}
+              alt="Crop preview"
+              className="crop-preview-image"
+            />
+            <div 
+              className="crop-mask"
+              style={{
+                width: imageRect.width > 0 ? `${imageRect.width}px` : '0px',
+                height: imageRect.height > 0 ? `${imageRect.height}px` : '0px',
+                left: imageRect.width > 0 ? `${imageRect.left}px` : '0px',
+                top: imageRect.height > 0 ? `${imageRect.top}px` : '0px',
+              }}
+            >
+              <div
+                className="crop-overlay"
+                style={{
+                  left: `${displayX}px`,
+                  top: `${displayY}px`,
+                  width: `${displayWidth}px`,
+                  height: `${displayHeight}px`,
+                  borderColor: colors[cropColor],
+                }}
+                onMouseDown={handleMouseDown}
+              >
+                {renderGridLines()}
+                <div className="crop-handle crop-handle-center" style={{ backgroundColor: colors[cropColor] }} />
+              </div>
             </div>
           </div>
         </div>

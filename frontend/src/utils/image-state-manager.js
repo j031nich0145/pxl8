@@ -18,9 +18,27 @@ export function saveMainImage(file, dimensions) {
     // Convert File to base64 for storage
     const reader = new FileReader()
     reader.onload = () => {
-      const base64 = reader.result
-      localStorage.setItem(MAIN_IMAGE_KEY, base64)
-      localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+      try {
+        const base64 = reader.result
+        localStorage.setItem(MAIN_IMAGE_KEY, base64)
+        localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          console.warn('LocalStorage quota exceeded for main image, clearing old data')
+          // Clear pixelated image to make space for main image (main image is more important)
+          localStorage.removeItem(PIXELATED_IMAGE_KEY)
+          localStorage.removeItem(PIXELATED_IMAGE_INFO_KEY)
+          try {
+            // Try again
+            localStorage.setItem(MAIN_IMAGE_KEY, base64)
+            localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+          } catch (retryError) {
+            console.error('Still cannot save main image after clearing space:', retryError)
+          }
+        } else {
+          console.error('Failed to save main image to localStorage:', error)
+        }
+      }
     }
     reader.onerror = () => {
       console.error('Failed to save main image')
@@ -94,26 +112,44 @@ export function getMainImageUrl() {
 
 /**
  * Save pixelated image to localStorage
- * @param {string} blobUrl - Blob URL of pixelated image
+ * @param {Blob} blob - Blob object of pixelated image
  * @param {Object} imageInfo - { originalDimensions, pixelSize, targetDimensions, pixelationMethod, pixelationLevel, liveUpdate, cropState?, crunchApplied? }
  */
-export async function savePixelatedImage(blobUrl, imageInfo) {
+export async function savePixelatedImage(blob, imageInfo) {
   try {
-    // Convert blob URL to base64
-    const response = await fetch(blobUrl)
-    const blob = await response.blob()
-    
+    // Convert blob to base64 - no need to fetch since we have the blob directly
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
       reader.onload = () => {
-        const base64 = reader.result
-        localStorage.setItem(PIXELATED_IMAGE_KEY, base64)
-        localStorage.setItem(PIXELATED_IMAGE_INFO_KEY, JSON.stringify(imageInfo))
-        resolve()
+        try {
+          const base64 = reader.result
+          localStorage.setItem(PIXELATED_IMAGE_KEY, base64)
+          localStorage.setItem(PIXELATED_IMAGE_INFO_KEY, JSON.stringify(imageInfo))
+          resolve()
+        } catch (error) {
+          // Handle quota exceeded
+          if (error.name === 'QuotaExceededError') {
+            console.warn('LocalStorage quota exceeded for pixelated image, clearing old data')
+            // Clear old pixelated image
+            localStorage.removeItem(PIXELATED_IMAGE_KEY)
+            // Try again with just the info (more important than the image itself)
+            try {
+              localStorage.setItem(PIXELATED_IMAGE_INFO_KEY, JSON.stringify(imageInfo))
+              console.warn('Saved pixelated image info but not image data due to quota')
+              resolve() // Resolve anyway - info is more important
+            } catch (retryError) {
+              console.error('Cannot save even pixelated image info:', retryError)
+              reject(retryError)
+            }
+          } else {
+            console.error('Failed to save pixelated image to localStorage:', error)
+            reject(error)
+          }
+        }
       }
       reader.onerror = () => {
-        console.error('Failed to save pixelated image')
-        reject(new Error('Failed to save pixelated image'))
+        console.error('Failed to read blob')
+        reject(new Error('Failed to read blob'))
       }
       reader.readAsDataURL(blob)
     })

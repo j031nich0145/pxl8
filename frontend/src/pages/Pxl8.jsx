@@ -199,7 +199,7 @@ function Pxl8() {
     clearHistory() // Clear history when user picks new image
   }
 
-  const handleCrop = async (aspectRatio, cropX, cropY, cropWidth, cropHeight) => {
+  const handleCrop = useCallback(async (aspectRatio, cropX, cropY, cropWidth, cropHeight) => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -227,14 +227,15 @@ function Pxl8() {
         setImageDimensions(dimensions)
         // Save cropped file for Batch page
         saveMainImage(croppedFile, dimensions)
+        // useEffect will handle reprocessing when uploadedFile changes
       }
       img.src = URL.createObjectURL(croppedFile)
     } catch (err) {
       setError(err.message || 'Crop failed')
     }
-  }
+  }, [uploadedFile, liveUpdate, addToHistory])
 
-  const handleCrunch = async () => {
+  const handleCrunch = useCallback(async () => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -267,14 +268,15 @@ function Pxl8() {
         setImageDimensions(dimensions)
         // Save crunched file for Batch page
         saveMainImage(normalizedFile, dimensions)
+        // Live update is already enabled, useEffect will handle reprocessing
       }
       img.src = URL.createObjectURL(normalizedFile)
     } catch (err) {
       setError(err.message || 'Crunch failed')
     }
-  }
+  }, [uploadedFile, liveUpdate, addToHistory])
 
-  const handle2xCrunch = async () => {
+  const handle2xCrunch = useCallback(async () => {
     if (!uploadedFile) {
       setError('Please upload an image first')
       return
@@ -309,12 +311,13 @@ function Pxl8() {
         setImageDimensions(dimensions)
         // Save crunched file for Batch page
         saveMainImage(secondCrunch, dimensions)
+        // Live update is already enabled, useEffect will handle reprocessing
       }
       img.src = URL.createObjectURL(secondCrunch)
     } catch (err) {
       setError(err.message || '2x Crunch failed')
     }
-  }
+  }, [uploadedFile, liveUpdate, addToHistory])
 
   // Calculate pixel size from pixelation level
   // Maps to pixel block size (1x1 to 100x100) using exponential function
@@ -395,7 +398,7 @@ function Pxl8() {
         targetDimensions: { width: targetWidth, height: targetHeight },
         pixelationMethod: pixelationMethod
       }
-      await savePixelatedImage(url, imageInfo)
+      await savePixelatedImage(blob, imageInfo)  // Pass blob, not URL
     } catch (err) {
       setError(err.message || 'Processing failed')
     } finally {
@@ -426,27 +429,6 @@ function Pxl8() {
       }
     }
   }, [liveUpdate, pixelationLevel, pixelationMethod, uploadedFile, handleProcess, processing, cropState, crunchCount])
-
-  // Save pixelated image when processedImageUrl changes (for batch page)
-  useEffect(() => {
-    if (processedImageUrl && imageDimensions.width > 0) {
-      const { pixelSize, width: targetWidth, height: targetHeight } = calculateTargetDimensions()
-      const imageInfo = {
-        originalDimensions: imageDimensions,
-        pixelSize: pixelSize,
-        targetDimensions: { width: targetWidth, height: targetHeight },
-        pixelationMethod: pixelationMethod,
-        pixelationLevel: pixelationLevel,
-        liveUpdate: liveUpdate,
-        cropState: cropState,
-        crunchCount: crunchCount
-      }
-      savePixelatedImage(processedImageUrl, imageInfo).catch(err => {
-        console.error('Failed to save pixelated image:', err)
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [processedImageUrl, imageDimensions, pixelationMethod, pixelationLevel, liveUpdate, cropState, crunchCount])
 
   // Cleanup object URLs on unmount
   useEffect(() => {
