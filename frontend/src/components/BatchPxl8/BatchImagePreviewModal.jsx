@@ -1,7 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './BatchImagePreviewModal.css'
 
-function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, isOpen, onClose }) {
+function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, originalImageUrl, originalImageDimensions, isTargetImage, isOpen, onClose }) {
+  const [viewMode, setViewMode] = useState('pixelated')
+  // Reset view mode when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setViewMode('pixelated') // Always start with pixelated view
+    }
+  }, [isOpen])
+
   // Handle ESC key press
   useEffect(() => {
     if (!isOpen) return
@@ -20,6 +28,13 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, isOpen, 
 
   if (!isOpen || !imageUrl) return null
 
+  // Determine which image and dimensions to show
+  const showToggle = isTargetImage && originalImageUrl
+  const currentImageUrl = viewMode === 'pixelated' ? imageUrl : originalImageUrl
+  const currentDimensions = viewMode === 'pixelated' 
+    ? imageDimensions 
+    : originalImageDimensions
+
   const handleOverlayClick = (e) => {
     // Close if clicking on overlay, not on modal content
     if (e.target === e.currentTarget) {
@@ -37,21 +52,40 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, isOpen, 
         >
           ×
         </button>
+        
+        {/* Toggle buttons for target image */}
+        {showToggle && (
+          <div className="batch-image-preview-toggle">
+            <button
+              className={`batch-image-preview-toggle-button ${viewMode === 'pixelated' ? 'active' : ''}`}
+              onClick={() => setViewMode('pixelated')}
+            >
+              Pixelated
+            </button>
+            <button
+              className={`batch-image-preview-toggle-button ${viewMode === 'original' ? 'active' : ''}`}
+              onClick={() => setViewMode('original')}
+            >
+              Original
+            </button>
+          </div>
+        )}
+
         <div className="batch-image-preview-container">
           <img 
-            src={imageUrl} 
+            src={currentImageUrl} 
             alt={imageName || 'Preview'}
             className="batch-image-preview-image"
           />
         </div>
-        {(imageName || imageDimensions) && (
+        {(imageName || currentDimensions) && (
           <div className="batch-image-preview-info">
             {imageName && (
               <div className="batch-image-preview-filename">{imageName}</div>
             )}
-            {imageDimensions && imageDimensions.width && imageDimensions.height && (
+            {currentDimensions && currentDimensions.width && currentDimensions.height && (
               <div className="batch-image-preview-dimensions">
-                {imageDimensions.width}×{imageDimensions.height} px
+                {currentDimensions.width}×{currentDimensions.height} px
               </div>
             )}
           </div>

@@ -24,7 +24,10 @@ function PxlBatch() {
     isOpen: false,
     imageUrl: null,
     imageName: null,
-    imageDimensions: null
+    imageDimensions: null,
+    originalImageUrl: null,
+    originalImageDimensions: null,
+    isTargetImage: false
   })
   const [originalTargetImageUrl, setOriginalTargetImageUrl] = useState(null)
   const [darkMode, setDarkMode] = useState(() => {
@@ -410,11 +413,18 @@ function PxlBatch() {
 
   // Handle thumbnail click to open preview modal
   const handleThumbnailClick = (imageUrl, imageName, imageDimensions) => {
+    const isTargetImage = imageName === 'Target Image'
+    
     setPreviewModal({
       isOpen: true,
       imageUrl,
       imageName,
-      imageDimensions
+      imageDimensions,
+      originalImageUrl: isTargetImage ? originalTargetImageUrl : null,
+      originalImageDimensions: isTargetImage && pixelatedImageInfo?.originalDimensions 
+        ? pixelatedImageInfo.originalDimensions 
+        : null,
+      isTargetImage
     })
   }
 
@@ -424,7 +434,10 @@ function PxlBatch() {
       isOpen: false,
       imageUrl: null,
       imageName: null,
-      imageDimensions: null
+      imageDimensions: null,
+      originalImageUrl: null,
+      originalImageDimensions: null,
+      isTargetImage: false
     })
   }
 
@@ -472,6 +485,9 @@ function PxlBatch() {
           imageUrl={previewModal.imageUrl}
           imageName={previewModal.imageName}
           imageDimensions={previewModal.imageDimensions}
+          originalImageUrl={previewModal.originalImageUrl}
+          originalImageDimensions={previewModal.originalImageDimensions}
+          isTargetImage={previewModal.isTargetImage}
           isOpen={previewModal.isOpen}
           onClose={handleCloseModal}
         />

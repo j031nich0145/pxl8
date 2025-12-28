@@ -34,15 +34,16 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
               onMouseLeave={() => setIsHoveringTarget(false)}
               onClick={() => {
                 if (onThumbnailClick) {
-                  const currentImageUrl = isHoveringTarget && originalTargetImageUrl ? originalTargetImageUrl : targetImageUrl
+                  // Always pass pixelated image URL (not the hovered original)
+                  // The modal will handle showing both versions with toggle
                   const img = new Image()
                   img.onload = () => {
-                    onThumbnailClick(currentImageUrl, 'Target Image', { width: img.width, height: img.height })
+                    onThumbnailClick(targetImageUrl, 'Target Image', { width: img.width, height: img.height })
                   }
                   img.onerror = () => {
-                    onThumbnailClick(currentImageUrl, 'Target Image', null)
+                    onThumbnailClick(targetImageUrl, 'Target Image', null)
                   }
-                  img.src = currentImageUrl
+                  img.src = targetImageUrl
                 }
               }}
               style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
