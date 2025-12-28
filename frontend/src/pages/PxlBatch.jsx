@@ -474,8 +474,8 @@ function PxlBatch() {
         url: processedUrl || URL.createObjectURL(file),
         name: file.name,
         dimensions: result?.dimensions || null,
-        originalUrl: null,
-        originalDimensions: null,
+        originalUrl: URL.createObjectURL(file), // Original file URL
+        originalDimensions: null, // Will be detected by modal
         isTarget: false
       })
     })

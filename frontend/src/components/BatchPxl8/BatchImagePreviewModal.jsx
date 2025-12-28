@@ -3,12 +3,31 @@ import './BatchImagePreviewModal.css'
 
 function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, originalImageUrl, originalImageDimensions, isTargetImage, isOpen, onClose, currentIndex, totalImages, onNavigate }) {
   const [viewMode, setViewMode] = useState('pixelated')
+  const [displayedDimensions, setDisplayedDimensions] = useState(null)
+  
   // Reset view mode when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setViewMode('pixelated') // Always start with pixelated view
     }
   }, [isOpen])
+
+  // Detect dimensions from image if not provided
+  useEffect(() => {
+    const currentImageUrl = viewMode === 'pixelated' ? imageUrl : originalImageUrl
+    const currentDimensions = viewMode === 'pixelated' ? imageDimensions : originalImageDimensions
+    
+    if (currentDimensions && currentDimensions.width) {
+      setDisplayedDimensions(currentDimensions)
+    } else if (currentImageUrl) {
+      // Load image to get dimensions
+      const img = new Image()
+      img.onload = () => {
+        setDisplayedDimensions({ width: img.width, height: img.height })
+      }
+      img.src = currentImageUrl
+    }
+  }, [imageUrl, originalImageUrl, imageDimensions, originalImageDimensions, viewMode])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -33,7 +52,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
   if (!isOpen || !imageUrl) return null
 
   // Determine which image and dimensions to show
-  const showToggle = isTargetImage && originalImageUrl
+  const showToggle = originalImageUrl // Show toggle for any image with original
   const currentImageUrl = viewMode === 'pixelated' ? imageUrl : originalImageUrl
   const currentDimensions = viewMode === 'pixelated' 
     ? imageDimensions 
@@ -44,6 +63,15 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
     if (e.target === e.currentTarget) {
       onClose()
     }
+  }
+
+  const handleDownload = () => {
+    const link = document.createElement('a')
+    link.href = currentImageUrl
+    link.download = imageName || 'image.png'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -79,23 +107,32 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
           </>
         )}
         
-        {/* Toggle buttons for target image */}
-        {showToggle && (
-          <div className="batch-image-preview-toggle">
-            <button
-              className={`batch-image-preview-toggle-button ${viewMode === 'pixelated' ? 'active' : ''}`}
-              onClick={() => setViewMode('pixelated')}
-            >
-              Pixelated
-            </button>
-            <button
-              className={`batch-image-preview-toggle-button ${viewMode === 'original' ? 'active' : ''}`}
-              onClick={() => setViewMode('original')}
-            >
-              Original
-            </button>
-          </div>
-        )}
+        {/* Controls: Toggle and Download */}
+        <div className="batch-image-preview-controls">
+          {showToggle && (
+            <div className="batch-image-preview-toggle">
+              <button
+                className={`batch-image-preview-toggle-button ${viewMode === 'pixelated' ? 'active' : ''}`}
+                onClick={() => setViewMode('pixelated')}
+              >
+                Pixelated
+              </button>
+              <button
+                className={`batch-image-preview-toggle-button ${viewMode === 'original' ? 'active' : ''}`}
+                onClick={() => setViewMode('original')}
+              >
+                Original
+              </button>
+            </div>
+          )}
+          <button
+            className="batch-image-preview-download"
+            onClick={handleDownload}
+            title="Download image"
+          >
+            ⬇ Download
+          </button>
+        </div>
 
         <div className="batch-image-preview-container">
           <img 
@@ -104,14 +141,14 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
             className="batch-image-preview-image"
           />
         </div>
-        {(imageName || currentDimensions) && (
+        {(imageName || displayedDimensions) && (
           <div className="batch-image-preview-info">
             {imageName && (
               <div className="batch-image-preview-filename">{imageName}</div>
             )}
-            {currentDimensions && currentDimensions.width && currentDimensions.height && (
+            {displayedDimensions && displayedDimensions.width && displayedDimensions.height && (
               <div className="batch-image-preview-dimensions">
-                {currentDimensions.width}×{currentDimensions.height} px
+                {displayedDimensions.width}×{displayedDimensions.height} px
               </div>
             )}
           </div>
