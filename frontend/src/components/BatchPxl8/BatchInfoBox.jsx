@@ -61,9 +61,9 @@ function BatchInfoBox({
             <button 
               className="process-all-button-info"
               onClick={onProcessAll}
-              title={`Preview All (${batchCount} ${batchCount === 1 ? 'image' : 'images'})`}
+              title={`Pxl8 All (${batchCount} ${batchCount === 1 ? 'image' : 'images'})`}
             >
-              Preview All
+              Pxl8 All
             </button>
             <button 
               className="clear-button-info"

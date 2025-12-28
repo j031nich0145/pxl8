@@ -4,6 +4,7 @@
 
 const MAIN_IMAGE_KEY = 'pxl8_main_image'
 const MAIN_IMAGE_DIMENSIONS_KEY = 'pxl8_main_image_dimensions'
+const MAIN_IMAGE_FILENAME_KEY = 'pxl8_main_image_filename'
 const PIXELATED_IMAGE_KEY = 'pxl8_pixelated_image'
 const PIXELATED_IMAGE_INFO_KEY = 'pxl8_pixelated_image_info'
 const BATCH_IMAGES_KEY = 'pxl8_batch_images'
@@ -69,8 +70,9 @@ async function compressImageForStorage(file, dimensions) {
  * Save main image to localStorage
  * @param {File} file - Image file
  * @param {Object} dimensions - { width, height }
+ * @param {string} filename - Optional filename to store
  */
-export async function saveMainImage(file, dimensions) {
+export async function saveMainImage(file, dimensions, filename = null) {
   try {
     // Compress image before saving
     const base64 = await compressImageForStorage(file, dimensions)
@@ -78,6 +80,9 @@ export async function saveMainImage(file, dimensions) {
     try {
       localStorage.setItem(MAIN_IMAGE_KEY, base64)
       localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+      if (filename) {
+        localStorage.setItem(MAIN_IMAGE_FILENAME_KEY, filename)
+      }
     } catch (error) {
       if (error.name === 'QuotaExceededError') {
         console.warn('LocalStorage quota exceeded for main image, clearing old data')
@@ -88,6 +93,9 @@ export async function saveMainImage(file, dimensions) {
           // Try again after clearing
           localStorage.setItem(MAIN_IMAGE_KEY, base64)
           localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+          if (filename) {
+            localStorage.setItem(MAIN_IMAGE_FILENAME_KEY, filename)
+          }
           console.log('Successfully saved main image after clearing space')
         } catch (retryError) {
           console.error('Still cannot save main image after clearing space:', retryError)
@@ -96,6 +104,9 @@ export async function saveMainImage(file, dimensions) {
           try {
             localStorage.setItem(MAIN_IMAGE_KEY, base64)
             localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+            if (filename) {
+              localStorage.setItem(MAIN_IMAGE_FILENAME_KEY, filename)
+            }
             console.log('Successfully saved main image after clearing all cached data')
           } catch (finalError) {
             console.error('Cannot save main image even after clearing all data:', finalError)
@@ -112,12 +123,13 @@ export async function saveMainImage(file, dimensions) {
 
 /**
  * Load main image from localStorage
- * @returns {Promise<Object|null>} - { file: File, dimensions: { width, height } } or null
+ * @returns {Promise<Object|null>} - { file: File, dimensions: { width, height }, filename: string, blob: Blob } or null
  */
 export async function loadMainImage() {
   try {
     const base64 = localStorage.getItem(MAIN_IMAGE_KEY)
     const dimensionsStr = localStorage.getItem(MAIN_IMAGE_DIMENSIONS_KEY)
+    const filename = localStorage.getItem(MAIN_IMAGE_FILENAME_KEY)
     
     if (!base64 || !dimensionsStr) {
       return null
@@ -129,9 +141,14 @@ export async function loadMainImage() {
     // Convert base64 to blob then to File
     const response = await fetch(base64)
     const blob = await response.blob()
-    const file = new File([blob], 'main-image.png', { type: blob.type })
+    const file = new File([blob], filename || 'main-image.png', { type: blob.type })
     
-    return { file, dimensions }
+    return { 
+      file, 
+      dimensions, 
+      filename: filename || 'image.png',
+      blob
+    }
   } catch (error) {
     console.error('Failed to load main image:', error)
     return null
@@ -153,6 +170,7 @@ export function clearMainImage() {
   try {
     localStorage.removeItem(MAIN_IMAGE_KEY)
     localStorage.removeItem(MAIN_IMAGE_DIMENSIONS_KEY)
+    localStorage.removeItem(MAIN_IMAGE_FILENAME_KEY)
   } catch (error) {
     console.error('Failed to clear main image:', error)
   }

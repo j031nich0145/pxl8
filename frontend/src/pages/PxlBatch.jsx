@@ -5,7 +5,7 @@ import BatchInfoBox from '../components/BatchPxl8/BatchInfoBox'
 import BatchPreviewInfoCard from '../components/BatchPxl8/BatchPreviewInfoCard'
 import BatchImagePreviewModal from '../components/BatchPxl8/BatchImagePreviewModal'
 import { getSettings } from '../utils/settings-manager'
-import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages, getMainImageUrl } from '../utils/image-state-manager'
+import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages, getMainImageUrl, loadMainImage } from '../utils/image-state-manager'
 import { pixelateImage } from '../utils/pixelation-client'
 import { normalizeTo72dpi } from '../utils/image-manipulation'
 import JSZip from 'jszip'
@@ -25,12 +25,15 @@ function PxlBatch() {
     imageUrl: null,
     imageName: null,
     imageDimensions: null,
+    targetDimensions: null,
     originalImageUrl: null,
     originalImageDimensions: null,
     isTargetImage: false,
+    hasPixelated: false,
     currentIndex: 0
   })
   const [originalTargetImageUrl, setOriginalTargetImageUrl] = useState(null)
+  const [originalTargetFilename, setOriginalTargetFilename] = useState(null)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('pxl8_dark_mode')
     return saved === 'true'
@@ -50,7 +53,25 @@ function PxlBatch() {
       const pixelatedData = await loadPixelatedImage()
       if (pixelatedData) {
         setPixelatedImageUrl(pixelatedData.imageUrl)
-        setPixelatedImageInfo(pixelatedData.imageInfo)
+        
+        // Detect actual pixelated dimensions if not already stored
+        let imageInfo = pixelatedData.imageInfo
+        if (!imageInfo.pixelatedDimensions && pixelatedData.imageUrl) {
+          const img = new Image()
+          await new Promise((resolve) => {
+            img.onload = () => {
+              imageInfo = {
+                ...imageInfo,
+                pixelatedDimensions: { width: img.width, height: img.height }
+              }
+              resolve()
+            }
+            img.onerror = () => resolve()
+            img.src = pixelatedData.imageUrl
+          })
+        }
+        
+        setPixelatedImageInfo(imageInfo)
       } else {
         // Try synchronous fallback
         const url = getPixelatedImageUrl()
@@ -61,10 +82,14 @@ function PxlBatch() {
         }
       }
       
-      // Load original target image URL for hover functionality
-      const originalUrl = getMainImageUrl()
-      if (originalUrl) {
-        setOriginalTargetImageUrl(originalUrl)
+      // Load main image (original) with filename
+      const mainImageData = await loadMainImage()
+      if (mainImageData) {
+        setOriginalTargetImageUrl(mainImageData.blob 
+          ? URL.createObjectURL(mainImageData.blob) 
+          : null)
+        // Store filename for use in modal
+        setOriginalTargetFilename(mainImageData.filename || 'image.png')
       }
       
       // Load batch images
@@ -192,7 +217,8 @@ function PxlBatch() {
       processedBlob: null,
       error: null,
       originalDimensions: null,
-      pixelatedDimensions: null
+      pixelatedDimensions: null,
+      targetDimensions: null
     }))
     setResults(initialResults)
     
@@ -209,11 +235,13 @@ function PxlBatch() {
           img.onload = async () => {
             try {
               // Store original dimensions immediately
+              const originalDims = { width: img.width, height: img.height }
+              console.log(`Stored original dimensions for image ${i}:`, originalDims)
               setResults(prev => {
                 const updated = [...prev]
                 updated[i] = {
                   ...updated[i],
-                  originalDimensions: { width: img.width, height: img.height }
+                  originalDimensions: originalDims
                 }
                 return updated
               })
@@ -253,6 +281,16 @@ function PxlBatch() {
               const targetWidth = Math.max(1, Math.floor(finalWidth / pixelSize))
               const targetHeight = Math.max(1, Math.floor(finalHeight / pixelSize))
               
+              // Store target dimensions
+              setResults(prev => {
+                const updated = [...prev]
+                updated[i] = {
+                  ...updated[i],
+                  targetDimensions: { width: targetWidth, height: targetHeight }
+                }
+                return updated
+              })
+              
               // Always use multiplier of 1.0 to maintain original image dimensions
               const multiplier = 1.0
               
@@ -281,6 +319,7 @@ function PxlBatch() {
                       width: pixelatedImg.width,
                       height: pixelatedImg.height
                     }
+                    console.log(`Stored pixelated dimensions for image ${i}:`, pixelatedDimensions)
                     
                     setResults(prev => {
                       const updated = [...prev]
@@ -480,31 +519,53 @@ function PxlBatch() {
     // For batch images, get dimensions from results
     let originalUrl = null
     let originalDims = null
-    let pixelatedDims = imageDimensions  // passed from thumbnail
+    let pixelatedDims = null  // Will be set from results/pixelatedImageInfo
+    let targetDims = null
+    let displayName = imageName
+    let hasPixelated = false
     
     if (isTargetImage) {
+      console.log('Target image click - pixelatedImageInfo:', pixelatedImageInfo)
       originalUrl = originalTargetImageUrl
       originalDims = pixelatedImageInfo?.originalDimensions || null
       pixelatedDims = pixelatedImageInfo?.pixelatedDimensions || null
+      targetDims = pixelatedImageInfo?.targetDimensions || null
+      displayName = originalTargetFilename || 'image.png'
+      hasPixelated = true  // Target always has pixelated version if it exists
     } else if (imageIndex !== undefined) {
       // Calculate batch file index
       const fileIndex = pixelatedImageUrl ? imageIndex - 1 : imageIndex
       if (fileIndex >= 0 && fileIndex < files.length) {
         const result = results[fileIndex]
+        console.log(`Batch image ${fileIndex} click - result:`, result)
         originalUrl = URL.createObjectURL(files[fileIndex])
         originalDims = result?.originalDimensions || null
         pixelatedDims = result?.pixelatedDimensions || null
+        targetDims = result?.targetDimensions || null
+        // Check if this batch image has been processed
+        hasPixelated = processedImageUrls[fileIndex] !== undefined
       }
     }
+    
+    console.log('Setting modal with dimensions:', {
+      imageName: displayName,
+      pixelatedDims,
+      targetDims,
+      originalDims,
+      hasPixelated,
+      resultObject: isTargetImage ? pixelatedImageInfo : (imageIndex !== undefined ? results[pixelatedImageUrl ? imageIndex - 1 : imageIndex] : null)
+    })
     
     setPreviewModal({
       isOpen: true,
       imageUrl,
-      imageName,
+      imageName: displayName,
       imageDimensions: pixelatedDims,
+      targetDimensions: targetDims,
       originalImageUrl: originalUrl,
       originalImageDimensions: originalDims,
       isTargetImage,
+      hasPixelated,
       currentIndex: imageIndex !== undefined ? imageIndex : 0
     })
   }
@@ -518,11 +579,13 @@ function PxlBatch() {
     if (pixelatedImageUrl) {
       allImages.push({
         url: pixelatedImageUrl,
-        name: 'Target Image',
+        name: originalTargetFilename || 'image.png',
         dimensions: pixelatedImageInfo?.pixelatedDimensions || null,
+        targetDimensions: pixelatedImageInfo?.targetDimensions || null,
         originalUrl: originalTargetImageUrl,
         originalDimensions: pixelatedImageInfo?.originalDimensions || null,
-        isTarget: true
+        isTarget: true,
+        hasPixelated: true
       })
     }
     
@@ -535,11 +598,15 @@ function PxlBatch() {
         url: processedUrl || URL.createObjectURL(file),
         name: file.name,
         dimensions: result?.pixelatedDimensions || null,
+        targetDimensions: result?.targetDimensions || null,
         originalUrl: URL.createObjectURL(file),
         originalDimensions: result?.originalDimensions || null,
-        isTarget: false
+        isTarget: false,
+        hasPixelated: processedUrl !== undefined
       })
     })
+    
+    console.log('allImages array:', allImages)
     
     const currentIndex = previewModal.currentIndex
     let newIndex = currentIndex
@@ -557,9 +624,11 @@ function PxlBatch() {
         imageUrl: newImage.url,
         imageName: newImage.name,
         imageDimensions: newImage.dimensions,
+        targetDimensions: newImage.targetDimensions,
         originalImageUrl: newImage.originalUrl,
         originalImageDimensions: newImage.originalDimensions,
         isTargetImage: newImage.isTarget,
+        hasPixelated: newImage.hasPixelated,
         currentIndex: newIndex
       })
     }
@@ -572,6 +641,7 @@ function PxlBatch() {
       imageUrl: null,
       imageName: null,
       imageDimensions: null,
+      targetDimensions: null,
       originalImageUrl: null,
       originalImageDimensions: null,
       isTargetImage: false,
@@ -623,9 +693,11 @@ function PxlBatch() {
           imageUrl={previewModal.imageUrl}
           imageName={previewModal.imageName}
           imageDimensions={previewModal.imageDimensions}
+          targetDimensions={previewModal.targetDimensions}
           originalImageUrl={previewModal.originalImageUrl}
           originalImageDimensions={previewModal.originalImageDimensions}
           isTargetImage={previewModal.isTargetImage}
+          hasPixelated={previewModal.hasPixelated}
           isOpen={previewModal.isOpen}
           onClose={handleCloseModal}
           currentIndex={previewModal.currentIndex}

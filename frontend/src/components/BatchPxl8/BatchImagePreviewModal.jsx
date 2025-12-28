@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './BatchImagePreviewModal.css'
 
-function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, originalImageUrl, originalImageDimensions, isTargetImage, isOpen, onClose, currentIndex, totalImages, onNavigate }) {
+function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDimensions, originalImageUrl, originalImageDimensions, isTargetImage, hasPixelated, isOpen, onClose, currentIndex, totalImages, onNavigate }) {
   const [viewMode, setViewMode] = useState('pixelated')
   const [displayedDimensions, setDisplayedDimensions] = useState(null)
   
@@ -15,13 +15,27 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
   // Detect dimensions from image if not provided
   useEffect(() => {
     const currentImageUrl = viewMode === 'pixelated' ? imageUrl : originalImageUrl
-    const currentDimensions = viewMode === 'pixelated' ? imageDimensions : originalImageDimensions
+    
+    // Use target dimensions for pixelated view, original dimensions for original view
+    const currentDimensions = viewMode === 'pixelated' 
+      ? targetDimensions  // Use target dims for pixelated
+      : originalImageDimensions
+    
+    console.log('Dimension useEffect triggered:', {
+      viewMode,
+      imageName,
+      targetDimensions,
+      imageDimensions,
+      originalImageDimensions,
+      currentDimensions,
+      hasPixelated
+    })
     
     if (currentDimensions && currentDimensions.width) {
       // Use provided dimensions
       setDisplayedDimensions(currentDimensions)
     } else if (currentImageUrl) {
-      // Reset and detect from image
+      // Fallback: detect from image
       setDisplayedDimensions(null)
       
       const img = new Image()
@@ -41,7 +55,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
     } else {
       setDisplayedDimensions(null)
     }
-  }, [imageUrl, originalImageUrl, imageDimensions, originalImageDimensions, viewMode])
+  }, [imageUrl, originalImageUrl, targetDimensions, imageDimensions, originalImageDimensions, viewMode])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -66,7 +80,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
   if (!isOpen || !imageUrl) return null
 
   // Determine which image and dimensions to show
-  const showToggle = originalImageUrl // Show toggle for any image with original
+  const showToggle = originalImageUrl && hasPixelated // Only show toggle if image has been pixelated
   const currentImageUrl = viewMode === 'pixelated' ? imageUrl : originalImageUrl
   const currentDimensions = viewMode === 'pixelated' 
     ? imageDimensions 
@@ -153,13 +167,16 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, original
               </button>
             </div>
           )}
-          <button
-            className="batch-image-preview-download"
-            onClick={handleDownload}
-            title="Download image"
-          >
-            ⬇
-          </button>
+          {/* Show download only if image is pixelated AND viewing pixelated version */}
+          {hasPixelated && viewMode === 'pixelated' && (
+            <button
+              className="batch-image-preview-download"
+              onClick={handleDownload}
+              title="Download image"
+            >
+              ⬇
+            </button>
+          )}
         </div>
 
         <div className="batch-image-preview-container">

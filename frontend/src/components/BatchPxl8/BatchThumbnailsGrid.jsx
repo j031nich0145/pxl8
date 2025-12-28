@@ -34,16 +34,8 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
               onMouseLeave={() => setIsHoveringTarget(false)}
               onClick={() => {
                 if (onThumbnailClick) {
-                  // Always pass pixelated image URL (not the hovered original)
-                  // The modal will handle showing both versions with toggle
-                  const img = new Image()
-                  img.onload = () => {
-                    onThumbnailClick(targetImageUrl, 'Target Image', { width: img.width, height: img.height }, 0)
-                  }
-                  img.onerror = () => {
-                    onThumbnailClick(targetImageUrl, 'Target Image', null, 0)
-                  }
-                  img.src = targetImageUrl
+                  // Don't detect dimensions - let PxlBatch use pixelatedImageInfo
+                  onThumbnailClick(targetImageUrl, 'Target Image', null, 0)
                 }
               }}
               style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
@@ -93,15 +85,9 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
                 className="thumbnail-image"
                 onClick={() => {
                   if (onThumbnailClick) {
-                    const img = new Image()
                     const imageIndex = targetImageUrl ? index + 1 : index // Offset by 1 if target image exists
-                    img.onload = () => {
-                      onThumbnailClick(imageUrl, file.name, { width: img.width, height: img.height }, imageIndex)
-                    }
-                    img.onerror = () => {
-                      onThumbnailClick(imageUrl, file.name, null, imageIndex)
-                    }
-                    img.src = imageUrl
+                    // Don't detect dimensions here - let PxlBatch use results array
+                    onThumbnailClick(imageUrl, file.name, null, imageIndex)
                   }
                 }}
                 style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
