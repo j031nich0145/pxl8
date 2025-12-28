@@ -177,11 +177,11 @@ function Pxl8() {
     
     // Get image dimensions for pixelation calculation
     const img = new Image()
-    img.onload = () => {
+    img.onload = async () => {
       const dimensions = { width: img.width, height: img.height }
       setImageDimensions(dimensions)
       // Save main image state for Batch page
-      saveMainImage(file, dimensions)
+      await saveMainImage(file, dimensions)
     }
     img.src = URL.createObjectURL(file)
   }
@@ -222,11 +222,11 @@ function Pxl8() {
       
       // Get new image dimensions and save cropped file
       const img = new Image()
-      img.onload = () => {
+      img.onload = async () => {
         const dimensions = { width: img.width, height: img.height }
         setImageDimensions(dimensions)
         // Save cropped file for Batch page
-        saveMainImage(croppedFile, dimensions)
+        await saveMainImage(croppedFile, dimensions)
         // useEffect will handle reprocessing when uploadedFile changes
       }
       img.src = URL.createObjectURL(croppedFile)
@@ -263,11 +263,11 @@ function Pxl8() {
       
       // Get new image dimensions and save crunched file
       const img = new Image()
-      img.onload = () => {
+      img.onload = async () => {
         const dimensions = { width: img.width, height: img.height }
         setImageDimensions(dimensions)
         // Save crunched file for Batch page
-        saveMainImage(normalizedFile, dimensions)
+        await saveMainImage(normalizedFile, dimensions)
         // Live update is already enabled, useEffect will handle reprocessing
       }
       img.src = URL.createObjectURL(normalizedFile)
@@ -306,11 +306,11 @@ function Pxl8() {
       
       // Get new image dimensions and save crunched file
       const img = new Image()
-      img.onload = () => {
+      img.onload = async () => {
         const dimensions = { width: img.width, height: img.height }
         setImageDimensions(dimensions)
         // Save crunched file for Batch page
-        saveMainImage(secondCrunch, dimensions)
+        await saveMainImage(secondCrunch, dimensions)
         // Live update is already enabled, useEffect will handle reprocessing
       }
       img.src = URL.createObjectURL(secondCrunch)

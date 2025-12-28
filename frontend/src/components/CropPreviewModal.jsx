@@ -218,6 +218,30 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
     setCropPosition({ x: newX, y: newY })
   }
 
+  // Handle arrow key movement
+  const handleArrowMove = (key) => {
+    const moveDistance = 10 // pixels to move per keypress
+    let newX = cropPosition.x
+    let newY = cropPosition.y
+    
+    switch(key) {
+      case 'ArrowUp':
+        newY = Math.max(0, cropPosition.y - moveDistance)
+        break
+      case 'ArrowDown':
+        newY = Math.min(imageDimensions.height - cropSize.height, cropPosition.y + moveDistance)
+        break
+      case 'ArrowLeft':
+        newX = Math.max(0, cropPosition.x - moveDistance)
+        break
+      case 'ArrowRight':
+        newX = Math.min(imageDimensions.width - cropSize.width, cropPosition.x + moveDistance)
+        break
+    }
+    
+    setCropPosition({ x: newX, y: newY })
+  }
+
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -233,6 +257,9 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
       } else if (e.key === '-' || e.key === '_') {
         e.preventDefault()
         handleScale('down')
+      } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        handleArrowMove(e.key)
       }
     }
 
@@ -309,9 +336,8 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
 
   // Calculate scale factor for display
   const getScale = () => {
-    if (!imageRef.current || !imageDimensions.width) return 1
-    const displayWidth = imageRef.current.offsetWidth
-    return displayWidth / imageDimensions.width
+    if (!imageDimensions.width || imageRect.width === 0) return 1
+    return imageRect.width / imageDimensions.width
   }
 
   // Color values
@@ -456,7 +482,7 @@ function CropPreviewModal({ originalFile, aspectRatio, onCrop, onCancel }) {
           </div>
         </div>
         <div className="crop-instructions">
-          Drag and resize with +/-
+          Drag to move • Arrow keys to nudge • +/- to resize
         </div>
         <div className="crop-actions">
           <button className="crop-rotate-button" onClick={handleRotate} title="Rotate 90 degrees">

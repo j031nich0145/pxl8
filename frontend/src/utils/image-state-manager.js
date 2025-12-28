@@ -8,44 +8,105 @@ const PIXELATED_IMAGE_KEY = 'pxl8_pixelated_image'
 const PIXELATED_IMAGE_INFO_KEY = 'pxl8_pixelated_image_info'
 const BATCH_IMAGES_KEY = 'pxl8_batch_images'
 
+// Maximum dimensions for stored images to prevent quota exceeded
+const MAX_STORAGE_DIMENSION = 2000
+const STORAGE_QUALITY = 0.85
+
+/**
+ * Compress image for storage to prevent quota exceeded errors
+ * @param {File} file - Image file
+ * @param {Object} dimensions - { width, height }
+ * @returns {Promise<string>} - Compressed base64 data URL
+ */
+async function compressImageForStorage(file, dimensions) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      try {
+        const { width, height } = dimensions
+        
+        // Calculate scaled dimensions if image is too large
+        let targetWidth = width
+        let targetHeight = height
+        
+        if (width > MAX_STORAGE_DIMENSION || height > MAX_STORAGE_DIMENSION) {
+          const scale = MAX_STORAGE_DIMENSION / Math.max(width, height)
+          targetWidth = Math.round(width * scale)
+          targetHeight = Math.round(height * scale)
+          console.log(`Compressing image from ${width}×${height} to ${targetWidth}×${targetHeight} for storage`)
+        }
+        
+        // Create canvas and draw scaled image
+        const canvas = document.createElement('canvas')
+        canvas.width = targetWidth
+        canvas.height = targetHeight
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+        
+        // Convert to base64 with quality compression
+        const base64 = canvas.toDataURL('image/jpeg', STORAGE_QUALITY)
+        
+        URL.revokeObjectURL(url)
+        resolve(base64)
+      } catch (error) {
+        URL.revokeObjectURL(url)
+        reject(error)
+      }
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image for compression'))
+    }
+    
+    img.src = url
+  })
+}
+
 /**
  * Save main image to localStorage
  * @param {File} file - Image file
  * @param {Object} dimensions - { width, height }
  */
-export function saveMainImage(file, dimensions) {
+export async function saveMainImage(file, dimensions) {
   try {
-    // Convert File to base64 for storage
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const base64 = reader.result
-        localStorage.setItem(MAIN_IMAGE_KEY, base64)
-        localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
-      } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-          console.warn('LocalStorage quota exceeded for main image, clearing old data')
-          // Clear pixelated image to make space for main image (main image is more important)
-          localStorage.removeItem(PIXELATED_IMAGE_KEY)
-          localStorage.removeItem(PIXELATED_IMAGE_INFO_KEY)
+    // Compress image before saving
+    const base64 = await compressImageForStorage(file, dimensions)
+    
+    try {
+      localStorage.setItem(MAIN_IMAGE_KEY, base64)
+      localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        console.warn('LocalStorage quota exceeded for main image, clearing old data')
+        // Clear pixelated image to make space for main image (main image is more important)
+        localStorage.removeItem(PIXELATED_IMAGE_KEY)
+        localStorage.removeItem(PIXELATED_IMAGE_INFO_KEY)
+        try {
+          // Try again after clearing
+          localStorage.setItem(MAIN_IMAGE_KEY, base64)
+          localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
+          console.log('Successfully saved main image after clearing space')
+        } catch (retryError) {
+          console.error('Still cannot save main image after clearing space:', retryError)
+          // Last resort: clear batch images too
+          localStorage.removeItem(BATCH_IMAGES_KEY)
           try {
-            // Try again
             localStorage.setItem(MAIN_IMAGE_KEY, base64)
             localStorage.setItem(MAIN_IMAGE_DIMENSIONS_KEY, JSON.stringify(dimensions))
-          } catch (retryError) {
-            console.error('Still cannot save main image after clearing space:', retryError)
+            console.log('Successfully saved main image after clearing all cached data')
+          } catch (finalError) {
+            console.error('Cannot save main image even after clearing all data:', finalError)
           }
-        } else {
-          console.error('Failed to save main image to localStorage:', error)
         }
+      } else {
+        console.error('Failed to save main image to localStorage:', error)
       }
     }
-    reader.onerror = () => {
-      console.error('Failed to save main image')
-    }
-    reader.readAsDataURL(file)
   } catch (error) {
-    console.error('Failed to save main image:', error)
+    console.error('Failed to compress and save main image:', error)
   }
 }
 
@@ -253,7 +314,7 @@ function base64ToBlob(base64, mimeType) {
 }
 
 /**
- * Save batch images to localStorage
+ * Save batch images to localStorage with compression
  * @param {File[]} files - Array of File objects
  */
 export async function saveBatchImages(files) {
@@ -264,16 +325,41 @@ export async function saveBatchImages(files) {
     }
 
     const fileData = await Promise.all(files.map(async (file) => {
-      const base64 = await fileToBase64(file)
+      // Get image dimensions
+      const dimensions = await new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve({ width: img.width, height: img.height })
+        img.onerror = () => resolve({ width: 800, height: 600 }) // fallback
+        img.src = URL.createObjectURL(file)
+      })
+      
+      // Compress each batch image
+      const base64 = await compressImageForStorage(file, dimensions)
       return {
         base64,
         name: file.name,
-        type: file.type,
+        type: 'image/jpeg', // All compressed to JPEG
         lastModified: file.lastModified
       }
     }))
     
-    localStorage.setItem(BATCH_IMAGES_KEY, JSON.stringify(fileData))
+    try {
+      localStorage.setItem(BATCH_IMAGES_KEY, JSON.stringify(fileData))
+    } catch (error) {
+      if (error.name === 'QuotaExceededError') {
+        console.warn('LocalStorage quota exceeded for batch images, saving fewer images')
+        // Try saving only first half of images
+        const halfData = fileData.slice(0, Math.ceil(fileData.length / 2))
+        try {
+          localStorage.setItem(BATCH_IMAGES_KEY, JSON.stringify(halfData))
+          console.log(`Saved ${halfData.length} of ${fileData.length} batch images due to quota`)
+        } catch (retryError) {
+          console.error('Cannot save batch images even with reduced count:', retryError)
+        }
+      } else {
+        throw error
+      }
+    }
   } catch (error) {
     console.error('Failed to save batch images:', error)
   }
