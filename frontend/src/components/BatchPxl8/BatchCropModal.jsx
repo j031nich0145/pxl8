@@ -605,16 +605,6 @@ function BatchCropModal({ files, onApply, onCancel }) {
   return (
     <div className="batch-crop-modal-overlay">
       <div className="batch-crop-modal" onClick={(e) => e.stopPropagation()}>
-        <button 
-          className="batch-crop-close"
-          onClick={onCancel}
-          title="Close (ESC)"
-        >
-          ×
-        </button>
-
-        <h2 className="batch-crop-title">Batch Crop</h2>
-
         {/* Controls Bar */}
         <div className="batch-crop-controls-bar">
           <div className="batch-crop-control-group">

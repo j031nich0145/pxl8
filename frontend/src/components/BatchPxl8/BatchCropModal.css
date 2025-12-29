@@ -27,6 +27,7 @@
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   position: relative;
+  overflow: hidden;
 }
 
 body.dark-mode .batch-crop-modal {
@@ -72,6 +73,7 @@ body.dark-mode .batch-crop-close:hover {
   font-weight: 600;
   color: #333;
   margin: 0 0 16px 0;
+  flex-shrink: 0;
 }
 
 body.dark-mode .batch-crop-title {
@@ -81,14 +83,17 @@ body.dark-mode .batch-crop-title {
 /* Controls Bar */
 .batch-crop-controls-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-start;
   align-items: center;
   margin-bottom: 16px;
-  padding: 12px;
+  padding: 8px 12px;
   background: #f5f5f5;
   border-radius: 8px;
-  gap: 16px;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
 }
 
 body.dark-mode .batch-crop-controls-bar {
@@ -98,7 +103,9 @@ body.dark-mode .batch-crop-controls-bar {
 .batch-crop-control-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .batch-crop-control-label {
@@ -113,7 +120,7 @@ body.dark-mode .batch-crop-control-label {
 }
 
 .batch-crop-control-button {
-  padding: 6px 12px;
+  padding: 5px 10px;
   border: 1px solid #4dd0e1;
   background: #ffffff;
   color: #00838f;
@@ -122,6 +129,8 @@ body.dark-mode .batch-crop-control-label {
   transition: all 0.2s ease;
   font-size: 0.85rem;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 body.dark-mode .batch-crop-control-button {
@@ -157,15 +166,17 @@ body.dark-mode .batch-crop-control-button.active {
 }
 
 .batch-crop-move-button {
-  padding: 8px 16px;
+  padding: 5px 12px;
   border: 1px solid #4dd0e1;
   background: #ffffff;
   color: #00838f;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .batch-crop-move-button:hover {
@@ -191,6 +202,7 @@ body.dark-mode .batch-crop-move-button:hover {
   gap: 16px;
   min-height: 0;
   margin-bottom: 16px;
+  overflow: hidden;
 }
 
 /* Image List Sidebar */
@@ -309,6 +321,7 @@ body.dark-mode .batch-crop-image-list-sidebar .batch-crop-image-name {
   border-radius: 8px;
   overflow: hidden;
   min-height: 300px;
+  max-height: 100%;
 }
 
 body.dark-mode .batch-crop-preview-container {
@@ -444,6 +457,7 @@ body.dark-mode .batch-crop-alignment-controls .batch-crop-control-label {
   font-size: 0.85rem;
   color: #666;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 body.dark-mode .batch-crop-instructions {
@@ -457,6 +471,7 @@ body.dark-mode .batch-crop-instructions {
   align-items: center;
   padding-top: 12px;
   border-top: 1px solid #e0e0e0;
+  flex-shrink: 0;
 }
 
 body.dark-mode .batch-crop-actions {
