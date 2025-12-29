@@ -811,29 +811,6 @@ function BatchCropModal({ files, onApply, onCancel }) {
           </div>
         </div>
 
-        {/* Alignment Controls */}
-        <div className="batch-crop-alignment-controls">
-          <span className="batch-crop-control-label">Alignment:</span>
-          <button
-            className={`batch-crop-control-button ${imageAlignment === 'left' ? 'active' : ''}`}
-            onClick={() => setImageAlignment('left')}
-          >
-            Left
-          </button>
-          <button
-            className={`batch-crop-control-button ${imageAlignment === 'center' ? 'active' : ''}`}
-            onClick={() => setImageAlignment('center')}
-          >
-            Center
-          </button>
-          <button
-            className={`batch-crop-control-button ${imageAlignment === 'right' ? 'active' : ''}`}
-            onClick={() => setImageAlignment('right')}
-          >
-            Right
-          </button>
-        </div>
-
         {/* Instructions */}
         <div className="batch-crop-instructions">
           Drag to move • Arrow keys to nudge • +/- to resize
@@ -841,16 +818,41 @@ function BatchCropModal({ files, onApply, onCancel }) {
 
         {/* Actions */}
         <div className="batch-crop-actions">
-          <button className="batch-crop-cancel-button" onClick={onCancel}>
-            Cancel
-          </button>
-          <button 
-            className="batch-crop-apply-button" 
-            onClick={handleApplyCrop}
-            disabled={includedCount === 0}
-          >
-            Apply Crop to {includedCount} image{includedCount !== 1 ? 's' : ''}
-          </button>
+          {/* Alignment Controls */}
+          <div className="batch-crop-alignment-controls">
+            <span className="batch-crop-control-label">Alignment:</span>
+            <button
+              className={`batch-crop-control-button ${imageAlignment === 'left' ? 'active' : ''}`}
+              onClick={() => setImageAlignment('left')}
+            >
+              Left
+            </button>
+            <button
+              className={`batch-crop-control-button ${imageAlignment === 'center' ? 'active' : ''}`}
+              onClick={() => setImageAlignment('center')}
+            >
+              Center
+            </button>
+            <button
+              className={`batch-crop-control-button ${imageAlignment === 'right' ? 'active' : ''}`}
+              onClick={() => setImageAlignment('right')}
+            >
+              Right
+            </button>
+          </div>
+          
+          <div className="batch-crop-action-buttons">
+            <button className="batch-crop-cancel-button" onClick={onCancel}>
+              Cancel
+            </button>
+            <button 
+              className="batch-crop-apply-button" 
+              onClick={handleApplyCrop}
+              disabled={includedCount === 0}
+            >
+              Apply Crop to {includedCount} image{includedCount !== 1 ? 's' : ''}
+            </button>
+          </div>
         </div>
       </div>
     </div>

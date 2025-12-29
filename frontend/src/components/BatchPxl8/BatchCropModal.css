@@ -424,16 +424,7 @@ body.dark-mode .batch-crop-bounds-box {
 .batch-crop-alignment-controls {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  margin-bottom: 12px;
-  padding: 8px;
-  background: #f5f5f5;
-  border-radius: 8px;
-}
-
-body.dark-mode .batch-crop-alignment-controls {
-  background: #1a1a1a;
 }
 
 .batch-crop-alignment-controls .batch-crop-control-label {
@@ -462,14 +453,19 @@ body.dark-mode .batch-crop-instructions {
 /* Actions */
 .batch-crop-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   padding-top: 12px;
   border-top: 1px solid #e0e0e0;
 }
 
 body.dark-mode .batch-crop-actions {
   border-top-color: #424242;
+}
+
+.batch-crop-action-buttons {
+  display: flex;
+  gap: 12px;
 }
 
 .batch-crop-cancel-button,
