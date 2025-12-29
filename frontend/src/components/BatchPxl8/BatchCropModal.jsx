@@ -22,13 +22,11 @@ function BatchCropModal({ files, onApply, onCancel }) {
   const [referenceDimensions, setReferenceDimensions] = useState({ width: 0, height: 0 })
   const [imageRect, setImageRect] = useState({ width: 0, height: 0, left: 0, top: 0 })
   
-  // Scaling info for median-based image sizing
+  // Scaling info for height-matched image sizing
   const [scalingInfo, setScalingInfo] = useState({
-    medianArea: 0,
-    smallestScaledDimensions: { width: 0, height: 0 },
-    imageScaleFactors: {}, // Per-image scale factors to normalize to median
-    smallestIndex: 0,
-    baseDisplayScale: 1 // Scale factor to fit median-sized content in container
+    referenceIndex: 0, // Index of image with smallest width
+    referenceDims: { width: 0, height: 0 }, // Original dimensions of reference image
+    baseDisplayScale: 1 // Scale factor to fit reference image in container
   })
   
   // Bounds rect for the smallest scaled image (crop constraint area)
@@ -83,71 +81,44 @@ function BatchCropModal({ files, onApply, onCancel }) {
       const loadedImages = await Promise.all(imagePromises)
       setImages(loadedImages)
       
-      // Calculate scaling info based on median area
+      // Find image with smallest width - this becomes the reference for crop bounds
       if (loadedImages.length > 0) {
-        // Get all valid image areas
         const validImages = loadedImages.filter(img => img.dimensions.width > 0)
-        const areas = validImages.map(img => img.dimensions.width * img.dimensions.height)
         
-        // Find smallest and largest areas
-        const smallestArea = Math.min(...areas)
-        const largestArea = Math.max(...areas)
-        const medianArea = (smallestArea + largestArea) / 2
+        // Find image with smallest width
+        let referenceIndex = 0
+        let smallestWidth = Infinity
         
-        // Find smallest image index
-        let smallestIndex = 0
-        let smallestDimensions = loadedImages[0].dimensions
-        
-        loadedImages.forEach((img, index) => {
-          const currentArea = img.dimensions.width * img.dimensions.height
-          const smallestAreaCheck = smallestDimensions.width * smallestDimensions.height
-          
-          if (currentArea < smallestAreaCheck && currentArea > 0) {
-            smallestIndex = index
-            smallestDimensions = img.dimensions
+        validImages.forEach((img) => {
+          if (img.dimensions.width < smallestWidth) {
+            smallestWidth = img.dimensions.width
+            referenceIndex = img.index
           }
         })
         
-        // Calculate per-image scale factors to normalize to median area
-        // Scale factor: sqrt(medianArea / imageArea) - so larger images scale down, smaller scale up
-        const imageScaleFactors = {}
-        loadedImages.forEach((img, idx) => {
-          const imgArea = img.dimensions.width * img.dimensions.height
-          if (imgArea > 0) {
-            imageScaleFactors[idx] = Math.sqrt(medianArea / imgArea)
-          } else {
-            imageScaleFactors[idx] = 1
-          }
-        })
-        
-        // Calculate smallest image's scaled dimensions (this defines crop bounds)
-        const smallestScale = imageScaleFactors[smallestIndex]
-        const smallestScaledDimensions = {
-          width: smallestDimensions.width * smallestScale,
-          height: smallestDimensions.height * smallestScale
-        }
+        const referenceImage = loadedImages[referenceIndex]
+        const referenceDims = referenceImage.dimensions
         
         setScalingInfo({
-          medianArea,
-          smallestScaledDimensions,
-          imageScaleFactors,
-          smallestIndex,
+          referenceIndex,
+          referenceDims,
           baseDisplayScale: 1
         })
         
-        // Create stack order with smallest image on top (index 0)
-        const newStackOrder = [smallestIndex]
+        // Create stack order with reference (smallest width) image on top
+        const newStackOrder = [referenceIndex]
         for (let i = 0; i < loadedImages.length; i++) {
-          if (i !== smallestIndex) {
+          if (i !== referenceIndex) {
             newStackOrder.push(i)
           }
         }
         
         setStackOrder(newStackOrder)
         
-        // Reference dimensions are the smallest image's SCALED dimensions
-        if (smallestScaledDimensions.width > 0) {
-          setReferenceDimensions(smallestScaledDimensions)
+        // Reference dimensions are the original dimensions of the smallest width image
+        // This defines the crop bounds
+        if (referenceDims.width > 0) {
+          setReferenceDimensions(referenceDims)
         }
       }
     }
@@ -162,38 +133,32 @@ function BatchCropModal({ files, onApply, onCancel }) {
     }
   }, [files])
 
-  // Update bounds rect and base display scale when scaling info changes
+  // Update bounds rect and base display scale when reference image changes
   useEffect(() => {
     const updateBoundsRect = () => {
-      if (containerRef.current && scalingInfo.smallestScaledDimensions.width > 0) {
+      if (containerRef.current && scalingInfo.referenceDims.width > 0) {
         const containerRect = containerRef.current.getBoundingClientRect()
-        const { smallestScaledDimensions } = scalingInfo
+        const { referenceDims } = scalingInfo
         
-        // Find the largest scaled image to determine how much space we need
-        let maxScaledWidth = 0
-        let maxScaledHeight = 0
+        // Scale reference image to fit container (object-fit: contain)
+        const refAspect = referenceDims.width / referenceDims.height
+        const containerAspect = containerRect.width / containerRect.height
         
-        images.forEach((img, idx) => {
-          if (img.dimensions.width > 0) {
-            const scaleFactor = scalingInfo.imageScaleFactors[idx] || 1
-            const scaledWidth = img.dimensions.width * scaleFactor
-            const scaledHeight = img.dimensions.height * scaleFactor
-            maxScaledWidth = Math.max(maxScaledWidth, scaledWidth)
-            maxScaledHeight = Math.max(maxScaledHeight, scaledHeight)
-          }
-        })
-        
-        // Calculate base display scale to fit the largest scaled image in container
-        const scaleX = containerRect.width / maxScaledWidth
-        const scaleY = containerRect.height / maxScaledHeight
-        const baseDisplayScale = Math.min(scaleX, scaleY, 1) // Don't scale up beyond 1
+        let baseDisplayScale
+        if (refAspect > containerAspect) {
+          // Reference is wider - constrain by width
+          baseDisplayScale = containerRect.width / referenceDims.width
+        } else {
+          // Reference is taller - constrain by height
+          baseDisplayScale = containerRect.height / referenceDims.height
+        }
         
         // Update scaling info with base display scale
         setScalingInfo(prev => ({ ...prev, baseDisplayScale }))
         
-        // Calculate bounds rect (smallest scaled image display dimensions)
-        const boundsWidth = smallestScaledDimensions.width * baseDisplayScale
-        const boundsHeight = smallestScaledDimensions.height * baseDisplayScale
+        // Calculate bounds rect (reference image display dimensions = crop bounds)
+        const boundsWidth = referenceDims.width * baseDisplayScale
+        const boundsHeight = referenceDims.height * baseDisplayScale
         const boundsLeft = (containerRect.width - boundsWidth) / 2
         const boundsTop = (containerRect.height - boundsHeight) / 2
         
@@ -204,7 +169,7 @@ function BatchCropModal({ files, onApply, onCancel }) {
           top: boundsTop
         })
         
-        // imageRect now represents the smallest scaled image bounds
+        // imageRect represents the crop bounds
         setImageRect({
           width: boundsWidth,
           height: boundsHeight,
@@ -217,7 +182,7 @@ function BatchCropModal({ files, onApply, onCancel }) {
     updateBoundsRect()
     window.addEventListener('resize', updateBoundsRect)
     return () => window.removeEventListener('resize', updateBoundsRect)
-  }, [scalingInfo.smallestScaledDimensions, scalingInfo.imageScaleFactors, images])
+  }, [scalingInfo.referenceDims, images])
 
   // Initialize crop box after imageRect is set
   useEffect(() => {
@@ -285,37 +250,33 @@ function BatchCropModal({ files, onApply, onCancel }) {
     return boundsRect.width / referenceDimensions.width
   }
 
-  // Calculate per-image display size using median-relative scaling
+  // Calculate per-image display size - all images scaled to match reference height
   const getImageDisplaySize = (imageDimensions, imageIndex) => {
-    if (!containerRef.current || !imageDimensions.width) {
+    if (!containerRef.current || !imageDimensions.width || !boundsRect.height) {
       return { width: 0, height: 0 }
     }
     
-    // Get the scale factor for this image (to normalize to median area)
-    const medianScaleFactor = scalingInfo.imageScaleFactors[imageIndex] || 1
-    const baseDisplayScale = scalingInfo.baseDisplayScale || 1
-    
-    // Apply both the median normalization and the display scale
-    const displayWidth = imageDimensions.width * medianScaleFactor * baseDisplayScale
-    const displayHeight = imageDimensions.height * medianScaleFactor * baseDisplayScale
+    // All images are scaled so their HEIGHT matches the reference image's displayed height
+    // This means wider images will extend horizontally beyond the crop bounds
+    const targetHeight = boundsRect.height
+    const scale = targetHeight / imageDimensions.height
     
     return {
-      width: displayWidth,
-      height: displayHeight
+      width: imageDimensions.width * scale,
+      height: targetHeight // All images have the same display height
     }
   }
 
-  // Calculate image position so its center is at container center
+  // Calculate image position - all images aligned to crop bounds left edge, centered vertically
   const getImagePosition = (imageDimensions, imageIndex) => {
-    if (!containerRef.current) {
+    if (!containerRef.current || !boundsRect.width) {
       return { left: 0, top: 0 }
     }
-    const containerRect = containerRef.current.getBoundingClientRect()
-    const displaySize = getImageDisplaySize(imageDimensions, imageIndex)
-    // Position image so its center is at container center
+    // All images are positioned so their left edge aligns with the crop bounds left edge
+    // and they are vertically centered (all have same height as bounds)
     return {
-      left: (containerRect.width - displaySize.width) / 2,
-      top: (containerRect.height - displaySize.height) / 2
+      left: boundsRect.left,
+      top: boundsRect.top
     }
   }
 
@@ -557,15 +518,15 @@ function BatchCropModal({ files, onApply, onCancel }) {
   const handleApplyCrop = () => {
     if (!onApply) return
     
-    // Pass crop coordinates relative to smallest scaled image
-    // Also pass the scaling info so the crop can be applied correctly to each image
+    // Pass crop coordinates relative to reference image (smallest width)
+    // All images will be cropped to the same output dimensions
     const cropData = {
       x: cropPosition.x,
       y: cropPosition.y,
       width: cropSize.width,
       height: cropSize.height,
-      referenceDimensions, // Smallest scaled image dimensions (crop bounds)
-      scalingInfo, // Contains per-image scale factors
+      referenceDimensions, // Reference image dimensions (crop bounds)
+      scalingInfo, // Contains reference image info
       includedImages: images.filter(img => img.included).map(img => img.index)
     }
     
@@ -670,108 +631,111 @@ function BatchCropModal({ files, onApply, onCancel }) {
           </div>
         </div>
 
-        {/* Onion Skin Container */}
-        <div className="batch-crop-preview-container" ref={containerRef}>
-          <div className="batch-crop-stack-wrapper" ref={stackRef}>
-            {/* Render images in stack order with onion skin effect */}
-            {stackOrder.map((imageIndex, stackIndex) => {
-              const image = images[imageIndex]
-              if (!image || !image.included) return null
-              
-              const opacity = calculateOpacity(stackIndex)
-              const displaySize = getImageDisplaySize(image.dimensions, imageIndex)
-              const imagePosition = getImagePosition(image.dimensions, imageIndex)
-              
-              return (
-                <div
-                  key={`stack-${imageIndex}`}
-                  className="batch-crop-stack-layer"
-                  style={{
-                    opacity,
-                    zIndex: stackOrder.length - stackIndex
-                  }}
-                >
-                  <img
-                    src={image.url}
-                    alt={image.file.name}
-                    className="batch-crop-stack-image"
+        {/* Main Content Area - Sidebar + Preview */}
+        <div className="batch-crop-content-area">
+          {/* Left Sidebar - Image List */}
+          <div className="batch-crop-image-list-sidebar">
+            <div className="batch-crop-image-list-title">
+              Images ({includedCount} selected)
+            </div>
+            <div className="batch-crop-image-list-items">
+              {stackOrder.map((imageIndex, stackIndex) => {
+                const image = images[imageIndex]
+                if (!image) return null
+                
+                return (
+                  <label key={`checkbox-${imageIndex}`} className="batch-crop-image-item">
+                    <input
+                      type="checkbox"
+                      checked={image.included}
+                      onChange={() => toggleImageInclusion(imageIndex)}
+                    />
+                    <span className="batch-crop-image-name">
+                      {image.file.name} {stackIndex === 0 ? '(top)' : ''}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Right - Preview Container */}
+          <div className="batch-crop-preview-container" ref={containerRef}>
+            <div className="batch-crop-stack-wrapper" ref={stackRef}>
+              {/* Render images in stack order with onion skin effect */}
+              {stackOrder.map((imageIndex, stackIndex) => {
+                const image = images[imageIndex]
+                if (!image || !image.included) return null
+                
+                const opacity = calculateOpacity(stackIndex)
+                const displaySize = getImageDisplaySize(image.dimensions, imageIndex)
+                const imagePosition = getImagePosition(image.dimensions, imageIndex)
+                
+                return (
+                  <div
+                    key={`stack-${imageIndex}`}
+                    className="batch-crop-stack-layer"
                     style={{
-                      width: displaySize.width > 0 ? `${displaySize.width}px` : 'auto',
-                      height: displaySize.height > 0 ? `${displaySize.height}px` : 'auto',
-                      left: `${imagePosition.left}px`,
-                      top: `${imagePosition.top}px`,
+                      opacity,
+                      zIndex: stackOrder.length - stackIndex
                     }}
-                  />
-                </div>
-              )
-            })}
-            
-            {/* Grey Crop Bounds Box - shows smallest scaled image limits */}
-            {boundsRect.width > 0 && (
-              <div 
-                className="batch-crop-bounds-box"
-                style={{
-                  width: `${boundsRect.width}px`,
-                  height: `${boundsRect.height}px`,
-                  left: `${boundsRect.left}px`,
-                  top: `${boundsRect.top}px`,
-                }}
-              />
-            )}
-
-            {/* Crop Overlay - constrained within bounds box */}
-            {boundsRect.width > 0 && (
-              <div 
-                className="batch-crop-mask"
-                style={{
-                  width: `${boundsRect.width}px`,
-                  height: `${boundsRect.height}px`,
-                  left: `${boundsRect.left}px`,
-                  top: `${boundsRect.top}px`,
-                }}
-              >
-                <div
-                  className="batch-crop-overlay"
-                  style={{
-                    left: `${displayX}px`,
-                    top: `${displayY}px`,
-                    width: `${displayWidth}px`,
-                    height: `${displayHeight}px`,
-                    borderColor: colors[cropColor],
-                  }}
-                  onMouseDown={handleMouseDown}
-                >
-                  {renderGridLines()}
-                  <div className="batch-crop-handle" style={{ backgroundColor: colors[cropColor] }} />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Image List */}
-        <div className="batch-crop-image-list">
-          <div className="batch-crop-image-list-title">
-            Images in Stack ({includedCount} selected):
-          </div>
-          <div className="batch-crop-image-list-items">
-            {stackOrder.map((imageIndex, stackIndex) => {
-              const image = images[imageIndex]
-              if (!image) return null
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.file.name}
+                      className="batch-crop-stack-image"
+                      style={{
+                        width: displaySize.width > 0 ? `${displaySize.width}px` : 'auto',
+                        height: displaySize.height > 0 ? `${displaySize.height}px` : 'auto',
+                        left: `${imagePosition.left}px`,
+                        top: `${imagePosition.top}px`,
+                      }}
+                    />
+                  </div>
+                )
+              })}
               
-              return (
-                <label key={`checkbox-${imageIndex}`} className="batch-crop-image-item">
-                  <input
-                    type="checkbox"
-                    checked={image.included}
-                    onChange={() => toggleImageInclusion(imageIndex)}
-                  />
-                  <span className="batch-crop-image-name">
-                    {image.file.name} {stackIndex === 0 ? '(top)' : ''}
-                  </span>
-                </label>
-              )
-            })}
+              {/* Grey Crop Bounds Box - shows reference image limits */}
+              {boundsRect.width > 0 && (
+                <div 
+                  className="batch-crop-bounds-box"
+                  style={{
+                    width: `${boundsRect.width}px`,
+                    height: `${boundsRect.height}px`,
+                    left: `${boundsRect.left}px`,
+                    top: `${boundsRect.top}px`,
+                  }}
+                />
+              )}
+
+              {/* Crop Overlay - constrained within bounds box */}
+              {boundsRect.width > 0 && (
+                <div 
+                  className="batch-crop-mask"
+                  style={{
+                    width: `${boundsRect.width}px`,
+                    height: `${boundsRect.height}px`,
+                    left: `${boundsRect.left}px`,
+                    top: `${boundsRect.top}px`,
+                  }}
+                >
+                  <div
+                    className="batch-crop-overlay"
+                    style={{
+                      left: `${displayX}px`,
+                      top: `${displayY}px`,
+                      width: `${displayWidth}px`,
+                      height: `${displayHeight}px`,
+                      borderColor: colors[cropColor],
+                    }}
+                    onMouseDown={handleMouseDown}
+                  >
+                    {renderGridLines()}
+                    <div className="batch-crop-handle" style={{ backgroundColor: colors[cropColor] }} />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

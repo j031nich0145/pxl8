@@ -241,20 +241,12 @@ export async function normalizeTo72dpi(file) {
 export async function batchCropImages(files, cropData) {
   const { x, y, width, height, referenceDimensions, scalingInfo, includedImages } = cropData
   
-  // Crop coordinates are in "smallest scaled image" space
-  // referenceDimensions = smallest image dimensions * its scale factor
-  // We need to convert these to each image's native pixel coordinates
+  // Crop coordinates are in reference image pixel space
+  // referenceDimensions = original dimensions of the smallest width image
+  // All images are scaled so their HEIGHT matches the reference height
+  // The crop box is constrained within the reference image bounds
   
-  // Calculate crop center offset from reference center (in scaled space)
-  const refCenterX = referenceDimensions.width / 2
-  const refCenterY = referenceDimensions.height / 2
-  const cropCenterX = x + width / 2
-  const cropCenterY = y + height / 2
-  const offsetFromCenterX = cropCenterX - refCenterX
-  const offsetFromCenterY = cropCenterY - refCenterY
-  
-  // Output dimensions are always the same (from the crop box in scaled space)
-  // This is what ALL output images will be resized to
+  // Output dimensions are always the same (from the crop box)
   const outputWidth = Math.round(width)
   const outputHeight = Math.round(height)
   
@@ -273,32 +265,19 @@ export async function batchCropImages(files, cropData) {
       // Load image to get dimensions
       const img = await loadImageFromFile(file)
       
-      // Get this image's scale factor (to convert from scaled space to native pixels)
-      const imageScaleFactor = scalingInfo?.imageScaleFactors?.[i] || 1
+      // Calculate scale factor for this image (scaled so height matches reference height)
+      const heightScale = img.height / referenceDimensions.height
       
-      // Convert offset from scaled space to this image's native pixel space
-      // If this image was scaled down (factor < 1), the offset needs to be scaled up
-      const nativeOffsetX = offsetFromCenterX / imageScaleFactor
-      const nativeOffsetY = offsetFromCenterY / imageScaleFactor
-      
-      // Calculate crop position in native pixels
-      const imgCenterX = img.width / 2
-      const imgCenterY = img.height / 2
-      const nativeCropCenterX = imgCenterX + nativeOffsetX
-      const nativeCropCenterY = imgCenterY + nativeOffsetY
-      
-      // Convert crop dimensions from scaled space to native pixels
-      // This is the region we'll extract from this image
-      const nativeCropWidth = Math.round(outputWidth / imageScaleFactor)
-      const nativeCropHeight = Math.round(outputHeight / imageScaleFactor)
-      
-      // Convert crop center to top-left corner
-      const cropX = Math.round(nativeCropCenterX - nativeCropWidth / 2)
-      const cropY = Math.round(nativeCropCenterY - nativeCropHeight / 2)
+      // Convert crop coordinates from reference space to this image's native pixels
+      // Since all images are height-matched and left-aligned, we scale by height ratio
+      const nativeCropX = Math.round(x * heightScale)
+      const nativeCropY = Math.round(y * heightScale)
+      const nativeCropWidth = Math.round(width * heightScale)
+      const nativeCropHeight = Math.round(height * heightScale)
       
       // Ensure crop stays within bounds
-      const finalX = Math.max(0, Math.min(cropX, img.width - nativeCropWidth))
-      const finalY = Math.max(0, Math.min(cropY, img.height - nativeCropHeight))
+      const finalX = Math.max(0, Math.min(nativeCropX, img.width - nativeCropWidth))
+      const finalY = Math.max(0, Math.min(nativeCropY, img.height - nativeCropHeight))
       
       // Crop and resize to uniform output dimensions
       const croppedFile = await cropAndResizeImage(
