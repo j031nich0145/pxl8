@@ -12,30 +12,16 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
     }
   }, [isOpen])
 
-  // Detect dimensions from image if not provided
+  // Always use original image dimensions for display (not pixelated dimensions)
   useEffect(() => {
-    const currentImageUrl = viewMode === 'pixelated' ? imageUrl : originalImageUrl
+    // Always use original image dimensions for the image size display
+    const originalDims = originalImageDimensions || imageDimensions
     
-    // Use target dimensions for pixelated view, original dimensions for original view
-    const currentDimensions = viewMode === 'pixelated' 
-      ? targetDimensions  // Use target dims for pixelated
-      : originalImageDimensions
-    
-    console.log('Dimension useEffect triggered:', {
-      viewMode,
-      imageName,
-      targetDimensions,
-      imageDimensions,
-      originalImageDimensions,
-      currentDimensions,
-      hasPixelated
-    })
-    
-    if (currentDimensions && currentDimensions.width) {
-      // Use provided dimensions
-      setDisplayedDimensions(currentDimensions)
-    } else if (currentImageUrl) {
-      // Fallback: detect from image
+    if (originalDims && originalDims.width) {
+      // Use provided original dimensions
+      setDisplayedDimensions(originalDims)
+    } else if (originalImageUrl) {
+      // Fallback: detect from original image
       setDisplayedDimensions(null)
       
       const img = new Image()
@@ -46,7 +32,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
         console.error('Failed to load image for dimension detection')
         setDisplayedDimensions(null)
       }
-      img.src = currentImageUrl
+      img.src = originalImageUrl
       
       return () => {
         img.onload = null
@@ -55,7 +41,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
     } else {
       setDisplayedDimensions(null)
     }
-  }, [imageUrl, originalImageUrl, targetDimensions, imageDimensions, originalImageDimensions, viewMode])
+  }, [originalImageDimensions, imageDimensions, originalImageUrl])
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -149,7 +135,7 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
           </>
         )}
         
-        {/* Controls: Toggle and Download */}
+        {/* Controls: Toggle */}
         <div className="batch-image-preview-controls">
           {showToggle && (
             <div className="batch-image-preview-toggle">
@@ -167,16 +153,6 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
               </button>
             </div>
           )}
-          {/* Show download only if image is pixelated AND viewing pixelated version */}
-          {hasPixelated && viewMode === 'pixelated' && (
-            <button
-              className="batch-image-preview-download"
-              onClick={handleDownload}
-              title="Download image"
-            >
-              ⬇
-            </button>
-          )}
         </div>
 
         <div className="batch-image-preview-container">
@@ -188,12 +164,30 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
         </div>
         {(imageName || displayedDimensions) && (
           <div className="batch-image-preview-info">
-            {imageName && (
-              <div className="batch-image-preview-filename">{imageName}</div>
-            )}
+            <div className="batch-image-preview-header">
+              <div className="batch-image-preview-filename-wrapper">
+                {imageName && (
+                  <div className="batch-image-preview-filename">{imageName}</div>
+                )}
+              </div>
+              {hasPixelated && viewMode === 'pixelated' && (
+                <button
+                  className="batch-image-preview-download"
+                  onClick={handleDownload}
+                  title="Download pixelated image"
+                >
+                  ⬇️
+                </button>
+              )}
+            </div>
             {displayedDimensions && displayedDimensions.width && displayedDimensions.height && (
               <div className="batch-image-preview-dimensions">
                 {displayedDimensions.width}×{displayedDimensions.height} px
+              </div>
+            )}
+            {viewMode === 'pixelated' && targetDimensions && targetDimensions.width && targetDimensions.height && (
+              <div className="batch-image-preview-pixellation-size">
+                {targetDimensions.width}×{targetDimensions.height} px
               </div>
             )}
           </div>

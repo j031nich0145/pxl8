@@ -81,9 +81,9 @@ function BatchInfoBox({
             <button 
               className="clear-button-info"
               onClick={onClear}
-              title="Clear"
+              title="Remove Batch Images"
             >
-              Clear
+              Clear Batch
             </button>
           </>
         )}

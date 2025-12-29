@@ -92,8 +92,9 @@ function BatchPreviewInfoCard({ results, pixelatedImageInfo, onClear, onDownload
           <button 
             className="clear-results-button"
             onClick={onClear}
+            title="Clear Batch Pxl8"
           >
-            Clear
+            Clear Pxl8
           </button>
         )}
       </div>

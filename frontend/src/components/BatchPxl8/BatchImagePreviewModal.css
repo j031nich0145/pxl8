@@ -261,21 +261,38 @@ body.dark-mode .batch-image-preview-container {
 
 .batch-image-preview-info {
   margin-top: 15px;
-  text-align: center;
   padding-top: 15px;
   border-top: 1px solid #e0e0e0;
+  width: 100%;
+  text-align: center;
 }
 
 body.dark-mode .batch-image-preview-info {
   border-top-color: #404040;
 }
 
+.batch-image-preview-header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.batch-image-preview-filename-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .batch-image-preview-filename {
   font-size: 0.9rem;
   font-weight: 600;
   color: #212121;
-  margin-bottom: 5px;
   word-break: break-word;
+  text-align: center;
 }
 
 body.dark-mode .batch-image-preview-filename {
@@ -285,9 +302,53 @@ body.dark-mode .batch-image-preview-filename {
 .batch-image-preview-dimensions {
   font-size: 0.85rem;
   color: #757575;
+  text-align: center;
 }
 
 body.dark-mode .batch-image-preview-dimensions {
   color: #9e9e9e;
+}
+
+.batch-image-preview-pixellation-size {
+  font-size: 0.85rem;
+  color: #757575;
+  margin-top: 4px;
+  text-align: center;
+}
+
+body.dark-mode .batch-image-preview-pixellation-size {
+  color: #9e9e9e;
+}
+
+.batch-image-preview-info .batch-image-preview-download {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 8px;
+  font-size: 1rem;
+  border: 1px solid #4dd0e1;
+  background: #ffffff;
+  color: #00838f;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+body.dark-mode .batch-image-preview-info .batch-image-preview-download {
+  background: #2d2d2d;
+  border-color: #1976d2;
+  color: #81d4fa;
+}
+
+.batch-image-preview-info .batch-image-preview-download:hover {
+  background: #e0f7fa;
+  border-color: #26c6da;
+  transform: translateY(calc(-50% - 1px));
+}
+
+body.dark-mode .batch-image-preview-info .batch-image-preview-download:hover {
+  background: #1e3a5f;
+  border-color: #42a5f5;
 }
 
