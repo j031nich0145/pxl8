@@ -157,25 +157,21 @@ function BatchCropModal({ files, onApply, onCancel }) {
     if (!referenceDimensions.width || !imageRect.width || cropSize.width > 0) return
     
     const targetRatio = currentAspectRatio
-    const displayedImageRatio = imageRect.width / imageRect.height
+    const imageRatio = referenceDimensions.width / referenceDimensions.height
     
-    // Calculate crop box size in display coordinates
-    let cropBoxDisplayWidth, cropBoxDisplayHeight
+    // Calculate crop box size in image pixel coordinates (not display)
+    // This ensures the crop respects the target aspect ratio relative to the actual image
+    let cropWidth, cropHeight
     
-    if (displayedImageRatio > targetRatio) {
-      // Image wider than target - constrain by height
-      cropBoxDisplayHeight = imageRect.height
-      cropBoxDisplayWidth = cropBoxDisplayHeight * targetRatio
+    if (imageRatio > targetRatio) {
+      // Image wider than target ratio - constrain by height
+      cropHeight = referenceDimensions.height
+      cropWidth = cropHeight * targetRatio
     } else {
-      // Image taller than target - constrain by width
-      cropBoxDisplayWidth = imageRect.width
-      cropBoxDisplayHeight = cropBoxDisplayWidth / targetRatio
+      // Image taller than target ratio - constrain by width
+      cropWidth = referenceDimensions.width
+      cropHeight = cropWidth / targetRatio
     }
-    
-    // Convert to image pixel coordinates
-    const scale = imageRect.width / referenceDimensions.width
-    const cropWidth = cropBoxDisplayWidth / scale
-    const cropHeight = cropBoxDisplayHeight / scale
     
     // Ensure crop fits within image bounds
     const finalCropWidth = Math.min(cropWidth, referenceDimensions.width)
@@ -222,16 +218,43 @@ function BatchCropModal({ files, onApply, onCancel }) {
     return imageRect.width / referenceDimensions.width
   }
 
-  // Calculate per-image display size relative to smallest image
+  // Calculate per-image display size - each image scaled to fit container independently
   const getImageDisplaySize = (imageDimensions) => {
-    if (!referenceDimensions.width || !imageRect.width) {
+    if (!containerRef.current || !imageDimensions.width) {
       return { width: 0, height: 0 }
     }
-    // Scale factor from reference (smallest) image pixels to display pixels
-    const scale = imageRect.width / referenceDimensions.width
+    const containerRect = containerRef.current.getBoundingClientRect()
+    
+    // Each image uses object-fit: contain logic to fit within container
+    const imageAspect = imageDimensions.width / imageDimensions.height
+    const containerAspect = containerRect.width / containerRect.height
+    
+    if (imageAspect > containerAspect) {
+      // Image wider - constrain by width
+      return {
+        width: containerRect.width,
+        height: containerRect.width / imageAspect
+      }
+    } else {
+      // Image taller - constrain by height
+      return {
+        width: containerRect.height * imageAspect,
+        height: containerRect.height
+      }
+    }
+  }
+
+  // Calculate image position so its center is at container center
+  const getImagePosition = (imageDimensions) => {
+    if (!containerRef.current) {
+      return { left: 0, top: 0 }
+    }
+    const containerRect = containerRef.current.getBoundingClientRect()
+    const displaySize = getImageDisplaySize(imageDimensions)
+    // Position image so its center is at container center
     return {
-      width: imageDimensions.width * scale,
-      height: imageDimensions.height * scale
+      left: (containerRect.width - displaySize.width) / 2,
+      top: (containerRect.height - displaySize.height) / 2
     }
   }
 
@@ -594,6 +617,7 @@ function BatchCropModal({ files, onApply, onCancel }) {
               
               const opacity = calculateOpacity(stackIndex)
               const displaySize = getImageDisplaySize(image.dimensions)
+              const imagePosition = getImagePosition(image.dimensions)
               
               return (
                 <div
@@ -611,6 +635,8 @@ function BatchCropModal({ files, onApply, onCancel }) {
                     style={{
                       width: displaySize.width > 0 ? `${displaySize.width}px` : 'auto',
                       height: displaySize.height > 0 ? `${displaySize.height}px` : 'auto',
+                      left: `${imagePosition.left}px`,
+                      top: `${imagePosition.top}px`,
                     }}
                   />
                 </div>

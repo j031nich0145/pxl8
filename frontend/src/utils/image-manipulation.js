@@ -241,11 +241,18 @@ export async function normalizeTo72dpi(file) {
 export async function batchCropImages(files, cropData) {
   const { x, y, width, height, referenceDimensions, includedImages } = cropData
   
-  // Calculate crop as percentages of reference image
-  const xPercent = x / referenceDimensions.width
-  const yPercent = y / referenceDimensions.height
-  const widthPercent = width / referenceDimensions.width
-  const heightPercent = height / referenceDimensions.height
+  // Calculate crop center offset from reference image center
+  // This allows us to apply the same crop position relative to each image's center
+  const refCenterX = referenceDimensions.width / 2
+  const refCenterY = referenceDimensions.height / 2
+  const cropCenterX = x + width / 2
+  const cropCenterY = y + height / 2
+  const offsetFromCenterX = cropCenterX - refCenterX
+  const offsetFromCenterY = cropCenterY - refCenterY
+  
+  // Output dimensions are always the same (from the crop box)
+  const outputWidth = Math.round(width)
+  const outputHeight = Math.round(height)
   
   const croppedFiles = []
   
@@ -262,20 +269,23 @@ export async function batchCropImages(files, cropData) {
       // Load image to get dimensions
       const img = await loadImageFromFile(file)
       
-      // Apply percentage-based crop to this image
-      const scaledX = Math.round(img.width * xPercent)
-      const scaledY = Math.round(img.height * yPercent)
-      const scaledWidth = Math.round(img.width * widthPercent)
-      const scaledHeight = Math.round(img.height * heightPercent)
+      // Calculate crop position for this image using center-relative coordinates
+      // The crop center is at the same offset from this image's center as it was from the reference
+      const imgCenterX = img.width / 2
+      const imgCenterY = img.height / 2
+      const scaledCropCenterX = imgCenterX + offsetFromCenterX
+      const scaledCropCenterY = imgCenterY + offsetFromCenterY
+      
+      // Convert crop center to top-left corner
+      const scaledX = Math.round(scaledCropCenterX - outputWidth / 2)
+      const scaledY = Math.round(scaledCropCenterY - outputHeight / 2)
       
       // Ensure crop stays within bounds
-      const finalX = Math.max(0, Math.min(scaledX, img.width - 1))
-      const finalY = Math.max(0, Math.min(scaledY, img.height - 1))
-      const finalWidth = Math.min(scaledWidth, img.width - finalX)
-      const finalHeight = Math.min(scaledHeight, img.height - finalY)
+      const finalX = Math.max(0, Math.min(scaledX, img.width - outputWidth))
+      const finalY = Math.max(0, Math.min(scaledY, img.height - outputHeight))
       
       const croppedFile = await cropImageWithCoordinates(
-        file, finalX, finalY, finalWidth, finalHeight
+        file, finalX, finalY, outputWidth, outputHeight
       )
       
       croppedFiles.push(croppedFile)
