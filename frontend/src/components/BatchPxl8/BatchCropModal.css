@@ -249,12 +249,45 @@ body.dark-mode .batch-crop-image-list-sidebar .batch-crop-image-item:hover {
   background: rgba(25, 118, 210, 0.2);
 }
 
-.batch-crop-image-list-sidebar .batch-crop-image-item input[type="checkbox"] {
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
+.batch-crop-image-list-sidebar .batch-crop-image-check {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
-  margin-top: 2px;
+  text-align: center;
+  line-height: 18px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #888;
+  margin-right: 4px;
+}
+
+.batch-crop-image-list-sidebar .batch-crop-image-item.included .batch-crop-image-check {
+  color: #4caf50;
+}
+
+.batch-crop-image-list-sidebar .batch-crop-image-item:hover .batch-crop-image-check {
+  color: #4dd0e1;
+}
+
+.batch-crop-image-list-sidebar .batch-crop-image-item.included:hover .batch-crop-image-check {
+  color: #66bb6a;
+}
+
+body.dark-mode .batch-crop-image-list-sidebar .batch-crop-image-check {
+  color: #666;
+}
+
+body.dark-mode .batch-crop-image-list-sidebar .batch-crop-image-item.included .batch-crop-image-check {
+  color: #66bb6a;
+}
+
+body.dark-mode .batch-crop-image-list-sidebar .batch-crop-image-item:hover .batch-crop-image-check {
+  color: #81d4fa;
+}
+
+body.dark-mode .batch-crop-image-list-sidebar .batch-crop-image-item.included:hover .batch-crop-image-check {
+  color: #81c784;
 }
 
 .batch-crop-image-list-sidebar .batch-crop-image-name {
@@ -386,6 +419,33 @@ body.dark-mode .batch-crop-bounds-box {
 }
 
 /* Image List - Legacy styles removed, now using sidebar */
+
+/* Alignment Controls */
+.batch-crop-alignment-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+body.dark-mode .batch-crop-alignment-controls {
+  background: #1a1a1a;
+}
+
+.batch-crop-alignment-controls .batch-crop-control-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #424242;
+  margin-right: 4px;
+}
+
+body.dark-mode .batch-crop-alignment-controls .batch-crop-control-label {
+  color: #e0e0e0;
+}
 
 /* Instructions */
 .batch-crop-instructions {

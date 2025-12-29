@@ -17,6 +17,8 @@ function BatchCropModal({ files, onApply, onCancel }) {
   const [currentAspectRatio, setCurrentAspectRatio] = useState(1) // Default 1:1
   const [gridType, setGridType] = useState('off') // '3x3' | '9x9' | 'off'
   const [cropColor, setCropColor] = useState('blue') // 'blue' | 'black' | 'white'
+  const [imageAlignment, setImageAlignment] = useState('left') // 'left' | 'center' | 'right'
+  const [cropRotated, setCropRotated] = useState(false) // Track if crop is rotated
   
   // Reference dimensions (based on smallest image)
   const [referenceDimensions, setReferenceDimensions] = useState({ width: 0, height: 0 })
@@ -267,15 +269,31 @@ function BatchCropModal({ files, onApply, onCancel }) {
     }
   }
 
-  // Calculate image position - all images aligned to crop bounds left edge, centered vertically
+  // Calculate image position - all images aligned based on alignment setting, centered vertically
   const getImagePosition = (imageDimensions, imageIndex) => {
     if (!containerRef.current || !boundsRect.width) {
       return { left: 0, top: 0 }
     }
-    // All images are positioned so their left edge aligns with the crop bounds left edge
-    // and they are vertically centered (all have same height as bounds)
+    const displaySize = getImageDisplaySize(imageDimensions, imageIndex)
+    
+    // Calculate horizontal position based on alignment
+    let left
+    switch (imageAlignment) {
+      case 'center':
+        left = boundsRect.left + (boundsRect.width - displaySize.width) / 2
+        break
+      case 'right':
+        left = boundsRect.left + boundsRect.width - displaySize.width
+        break
+      case 'left':
+      default:
+        left = boundsRect.left
+        break
+    }
+    
+    // All images are vertically centered (all have same height as bounds)
     return {
-      left: boundsRect.left,
+      left,
       top: boundsRect.top
     }
   }
@@ -472,6 +490,48 @@ function BatchCropModal({ files, onApply, onCancel }) {
     setCropPosition({ x: newX, y: newY })
   }
 
+  // Handle crop rotation (swap width/height)
+  const handleRotateCrop = () => {
+    if (!referenceDimensions.width || cropSize.width === 0) return
+    
+    // Swap width and height
+    const newWidth = cropSize.height
+    const newHeight = cropSize.width
+    
+    // Update aspect ratio
+    const newRatio = newWidth / newHeight
+    setCurrentAspectRatio(newRatio)
+    
+    // Ensure crop stays within bounds
+    const maxWidth = referenceDimensions.width
+    const maxHeight = referenceDimensions.height
+    
+    let finalWidth = Math.min(newWidth, maxWidth)
+    let finalHeight = Math.min(newHeight, maxHeight)
+    
+    // Maintain aspect ratio
+    if (finalWidth / finalHeight > newRatio) {
+      finalWidth = finalHeight * newRatio
+    } else {
+      finalHeight = finalWidth / newRatio
+    }
+    
+    // Adjust position to stay within bounds
+    let newX = cropPosition.x
+    let newY = cropPosition.y
+    
+    if (newX + finalWidth > referenceDimensions.width) {
+      newX = Math.max(0, referenceDimensions.width - finalWidth)
+    }
+    if (newY + finalHeight > referenceDimensions.height) {
+      newY = Math.max(0, referenceDimensions.height - finalHeight)
+    }
+    
+    setCropSize({ width: finalWidth, height: finalHeight })
+    setCropPosition({ x: newX, y: newY })
+    setCropRotated(!cropRotated)
+  }
+
   // Render grid lines
   const renderGridLines = () => {
     if (gridType === 'off') return null
@@ -568,6 +628,16 @@ function BatchCropModal({ files, onApply, onCancel }) {
           </div>
           
           <div className="batch-crop-control-group">
+            <button
+              className="batch-crop-move-button"
+              onClick={handleRotateCrop}
+              title="Rotate crop box 90 degrees"
+            >
+              ⟲ Rotate
+            </button>
+          </div>
+          
+          <div className="batch-crop-control-group">
             <span className="batch-crop-control-label">Ratio:</span>
             {aspectRatioOptions.map(option => (
               <button
@@ -644,16 +714,18 @@ function BatchCropModal({ files, onApply, onCancel }) {
                 if (!image) return null
                 
                 return (
-                  <label key={`checkbox-${imageIndex}`} className="batch-crop-image-item">
-                    <input
-                      type="checkbox"
-                      checked={image.included}
-                      onChange={() => toggleImageInclusion(imageIndex)}
-                    />
+                  <div 
+                    key={`checkbox-${imageIndex}`} 
+                    className={`batch-crop-image-item ${image.included ? 'included' : ''}`}
+                    onClick={() => toggleImageInclusion(imageIndex)}
+                  >
+                    <span className="batch-crop-image-check">
+                      {image.included ? '✓' : '○'}
+                    </span>
                     <span className="batch-crop-image-name">
                       {image.file.name} {stackIndex === 0 ? '(top)' : ''}
                     </span>
-                  </label>
+                  </div>
                 )
               })}
             </div>
@@ -737,6 +809,29 @@ function BatchCropModal({ files, onApply, onCancel }) {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Alignment Controls */}
+        <div className="batch-crop-alignment-controls">
+          <span className="batch-crop-control-label">Alignment:</span>
+          <button
+            className={`batch-crop-control-button ${imageAlignment === 'left' ? 'active' : ''}`}
+            onClick={() => setImageAlignment('left')}
+          >
+            Left
+          </button>
+          <button
+            className={`batch-crop-control-button ${imageAlignment === 'center' ? 'active' : ''}`}
+            onClick={() => setImageAlignment('center')}
+          >
+            Center
+          </button>
+          <button
+            className={`batch-crop-control-button ${imageAlignment === 'right' ? 'active' : ''}`}
+            onClick={() => setImageAlignment('right')}
+          >
+            Right
+          </button>
         </div>
 
         {/* Instructions */}
