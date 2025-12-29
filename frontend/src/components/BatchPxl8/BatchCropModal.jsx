@@ -18,9 +18,21 @@ function BatchCropModal({ files, onApply, onCancel }) {
   const [gridType, setGridType] = useState('off') // '3x3' | '9x9' | 'off'
   const [cropColor, setCropColor] = useState('blue') // 'blue' | 'black' | 'white'
   
-  // Reference dimensions (based on top image)
+  // Reference dimensions (based on smallest image)
   const [referenceDimensions, setReferenceDimensions] = useState({ width: 0, height: 0 })
   const [imageRect, setImageRect] = useState({ width: 0, height: 0, left: 0, top: 0 })
+  
+  // Scaling info for median-based image sizing
+  const [scalingInfo, setScalingInfo] = useState({
+    medianArea: 0,
+    smallestScaledDimensions: { width: 0, height: 0 },
+    imageScaleFactors: {}, // Per-image scale factors to normalize to median
+    smallestIndex: 0,
+    baseDisplayScale: 1 // Scale factor to fit median-sized content in container
+  })
+  
+  // Bounds rect for the smallest scaled image (crop constraint area)
+  const [boundsRect, setBoundsRect] = useState({ width: 0, height: 0, left: 0, top: 0 })
   
   const containerRef = useRef(null)
   const stackRef = useRef(null)
@@ -71,19 +83,56 @@ function BatchCropModal({ files, onApply, onCancel }) {
       const loadedImages = await Promise.all(imagePromises)
       setImages(loadedImages)
       
-      // Find smallest image and its index
+      // Calculate scaling info based on median area
       if (loadedImages.length > 0) {
+        // Get all valid image areas
+        const validImages = loadedImages.filter(img => img.dimensions.width > 0)
+        const areas = validImages.map(img => img.dimensions.width * img.dimensions.height)
+        
+        // Find smallest and largest areas
+        const smallestArea = Math.min(...areas)
+        const largestArea = Math.max(...areas)
+        const medianArea = (smallestArea + largestArea) / 2
+        
+        // Find smallest image index
         let smallestIndex = 0
         let smallestDimensions = loadedImages[0].dimensions
         
         loadedImages.forEach((img, index) => {
-          const smallestArea = smallestDimensions.width * smallestDimensions.height
           const currentArea = img.dimensions.width * img.dimensions.height
+          const smallestAreaCheck = smallestDimensions.width * smallestDimensions.height
           
-          if (currentArea < smallestArea) {
+          if (currentArea < smallestAreaCheck && currentArea > 0) {
             smallestIndex = index
             smallestDimensions = img.dimensions
           }
+        })
+        
+        // Calculate per-image scale factors to normalize to median area
+        // Scale factor: sqrt(medianArea / imageArea) - so larger images scale down, smaller scale up
+        const imageScaleFactors = {}
+        loadedImages.forEach((img, idx) => {
+          const imgArea = img.dimensions.width * img.dimensions.height
+          if (imgArea > 0) {
+            imageScaleFactors[idx] = Math.sqrt(medianArea / imgArea)
+          } else {
+            imageScaleFactors[idx] = 1
+          }
+        })
+        
+        // Calculate smallest image's scaled dimensions (this defines crop bounds)
+        const smallestScale = imageScaleFactors[smallestIndex]
+        const smallestScaledDimensions = {
+          width: smallestDimensions.width * smallestScale,
+          height: smallestDimensions.height * smallestScale
+        }
+        
+        setScalingInfo({
+          medianArea,
+          smallestScaledDimensions,
+          imageScaleFactors,
+          smallestIndex,
+          baseDisplayScale: 1
         })
         
         // Create stack order with smallest image on top (index 0)
@@ -96,8 +145,9 @@ function BatchCropModal({ files, onApply, onCancel }) {
         
         setStackOrder(newStackOrder)
         
-        if (smallestDimensions && smallestDimensions.width > 0) {
-          setReferenceDimensions(smallestDimensions)
+        // Reference dimensions are the smallest image's SCALED dimensions
+        if (smallestScaledDimensions.width > 0) {
+          setReferenceDimensions(smallestScaledDimensions)
         }
       }
     }
@@ -112,45 +162,62 @@ function BatchCropModal({ files, onApply, onCancel }) {
     }
   }, [files])
 
-  // Update image rect when reference dimensions change
+  // Update bounds rect and base display scale when scaling info changes
   useEffect(() => {
-    const updateImageRect = () => {
-      if (containerRef.current && referenceDimensions.width > 0) {
+    const updateBoundsRect = () => {
+      if (containerRef.current && scalingInfo.smallestScaledDimensions.width > 0) {
         const containerRect = containerRef.current.getBoundingClientRect()
+        const { smallestScaledDimensions } = scalingInfo
         
-        // Calculate actual rendered image dimensions with object-fit: contain
-        const imageAspectRatio = referenceDimensions.width / referenceDimensions.height
-        const containerAspectRatio = containerRect.width / containerRect.height
+        // Find the largest scaled image to determine how much space we need
+        let maxScaledWidth = 0
+        let maxScaledHeight = 0
         
-        let renderedWidth, renderedHeight, offsetX, offsetY
+        images.forEach((img, idx) => {
+          if (img.dimensions.width > 0) {
+            const scaleFactor = scalingInfo.imageScaleFactors[idx] || 1
+            const scaledWidth = img.dimensions.width * scaleFactor
+            const scaledHeight = img.dimensions.height * scaleFactor
+            maxScaledWidth = Math.max(maxScaledWidth, scaledWidth)
+            maxScaledHeight = Math.max(maxScaledHeight, scaledHeight)
+          }
+        })
         
-        if (imageAspectRatio > containerAspectRatio) {
-          // Image wider - constrained by container width
-          renderedWidth = containerRect.width
-          renderedHeight = containerRect.width / imageAspectRatio
-          offsetX = 0
-          offsetY = (containerRect.height - renderedHeight) / 2
-        } else {
-          // Image taller - constrained by container height
-          renderedHeight = containerRect.height
-          renderedWidth = containerRect.height * imageAspectRatio
-          offsetX = (containerRect.width - renderedWidth) / 2
-          offsetY = 0
-        }
+        // Calculate base display scale to fit the largest scaled image in container
+        const scaleX = containerRect.width / maxScaledWidth
+        const scaleY = containerRect.height / maxScaledHeight
+        const baseDisplayScale = Math.min(scaleX, scaleY, 1) // Don't scale up beyond 1
         
+        // Update scaling info with base display scale
+        setScalingInfo(prev => ({ ...prev, baseDisplayScale }))
+        
+        // Calculate bounds rect (smallest scaled image display dimensions)
+        const boundsWidth = smallestScaledDimensions.width * baseDisplayScale
+        const boundsHeight = smallestScaledDimensions.height * baseDisplayScale
+        const boundsLeft = (containerRect.width - boundsWidth) / 2
+        const boundsTop = (containerRect.height - boundsHeight) / 2
+        
+        setBoundsRect({
+          width: boundsWidth,
+          height: boundsHeight,
+          left: boundsLeft,
+          top: boundsTop
+        })
+        
+        // imageRect now represents the smallest scaled image bounds
         setImageRect({
-          width: renderedWidth,
-          height: renderedHeight,
-          left: offsetX,
-          top: offsetY
+          width: boundsWidth,
+          height: boundsHeight,
+          left: boundsLeft,
+          top: boundsTop
         })
       }
     }
 
-    updateImageRect()
-    window.addEventListener('resize', updateImageRect)
-    return () => window.removeEventListener('resize', updateImageRect)
-  }, [referenceDimensions])
+    updateBoundsRect()
+    window.addEventListener('resize', updateBoundsRect)
+    return () => window.removeEventListener('resize', updateBoundsRect)
+  }, [scalingInfo.smallestScaledDimensions, scalingInfo.imageScaleFactors, images])
 
   // Initialize crop box after imageRect is set
   useEffect(() => {
@@ -210,47 +277,41 @@ function BatchCropModal({ files, onApply, onCancel }) {
     })
   }
 
-  // Calculate scale factor for display
+  // Calculate scale factor for display (converts reference pixel coords to display coords)
   const getScale = () => {
-    if (!referenceDimensions.width || imageRect.width === 0) {
+    if (!referenceDimensions.width || boundsRect.width === 0) {
       return 1
     }
-    return imageRect.width / referenceDimensions.width
+    return boundsRect.width / referenceDimensions.width
   }
 
-  // Calculate per-image display size - each image scaled to fit container independently
-  const getImageDisplaySize = (imageDimensions) => {
+  // Calculate per-image display size using median-relative scaling
+  const getImageDisplaySize = (imageDimensions, imageIndex) => {
     if (!containerRef.current || !imageDimensions.width) {
       return { width: 0, height: 0 }
     }
-    const containerRect = containerRef.current.getBoundingClientRect()
     
-    // Each image uses object-fit: contain logic to fit within container
-    const imageAspect = imageDimensions.width / imageDimensions.height
-    const containerAspect = containerRect.width / containerRect.height
+    // Get the scale factor for this image (to normalize to median area)
+    const medianScaleFactor = scalingInfo.imageScaleFactors[imageIndex] || 1
+    const baseDisplayScale = scalingInfo.baseDisplayScale || 1
     
-    if (imageAspect > containerAspect) {
-      // Image wider - constrain by width
-      return {
-        width: containerRect.width,
-        height: containerRect.width / imageAspect
-      }
-    } else {
-      // Image taller - constrain by height
-      return {
-        width: containerRect.height * imageAspect,
-        height: containerRect.height
-      }
+    // Apply both the median normalization and the display scale
+    const displayWidth = imageDimensions.width * medianScaleFactor * baseDisplayScale
+    const displayHeight = imageDimensions.height * medianScaleFactor * baseDisplayScale
+    
+    return {
+      width: displayWidth,
+      height: displayHeight
     }
   }
 
   // Calculate image position so its center is at container center
-  const getImagePosition = (imageDimensions) => {
+  const getImagePosition = (imageDimensions, imageIndex) => {
     if (!containerRef.current) {
       return { left: 0, top: 0 }
     }
     const containerRect = containerRef.current.getBoundingClientRect()
-    const displaySize = getImageDisplaySize(imageDimensions)
+    const displaySize = getImageDisplaySize(imageDimensions, imageIndex)
     // Position image so its center is at container center
     return {
       left: (containerRect.width - displaySize.width) / 2,
@@ -267,8 +328,8 @@ function BatchCropModal({ files, onApply, onCancel }) {
     const scale = getScale()
     const rect = stackRef.current?.getBoundingClientRect()
     if (rect) {
-      const mouseX = (e.clientX - rect.left - imageRect.left) / scale
-      const mouseY = (e.clientY - rect.top - imageRect.top) / scale
+      const mouseX = (e.clientX - rect.left - boundsRect.left) / scale
+      const mouseY = (e.clientY - rect.top - boundsRect.top) / scale
       
       setDragStart({ x: mouseX, y: mouseY })
       setDragOffset({
@@ -290,13 +351,13 @@ function BatchCropModal({ files, onApply, onCancel }) {
       const rect = stackRef.current.getBoundingClientRect()
       const scale = getScale()
       
-      const mouseX = (e.clientX - rect.left - imageRect.left) / scale
-      const mouseY = (e.clientY - rect.top - imageRect.top) / scale
+      const mouseX = (e.clientX - rect.left - boundsRect.left) / scale
+      const mouseY = (e.clientY - rect.top - boundsRect.top) / scale
       
       const newX = mouseX - dragOffset.x
       const newY = mouseY - dragOffset.y
 
-      // Constrain to image bounds
+      // Constrain to bounds (smallest scaled image dimensions)
       const constrainedX = Math.max(0, Math.min(newX, referenceDimensions.width - cropSize.width))
       const constrainedY = Math.max(0, Math.min(newY, referenceDimensions.height - cropSize.height))
 
@@ -314,7 +375,7 @@ function BatchCropModal({ files, onApply, onCancel }) {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isDragging, dragOffset, referenceDimensions, cropSize, imageRect])
+  }, [isDragging, dragOffset, referenceDimensions, cropSize, boundsRect])
 
   // Handle aspect ratio change
   const handleAspectRatioChange = (newRatioValue) => {
@@ -496,13 +557,15 @@ function BatchCropModal({ files, onApply, onCancel }) {
   const handleApplyCrop = () => {
     if (!onApply) return
     
-    // Pass crop coordinates as percentages
+    // Pass crop coordinates relative to smallest scaled image
+    // Also pass the scaling info so the crop can be applied correctly to each image
     const cropData = {
       x: cropPosition.x,
       y: cropPosition.y,
       width: cropSize.width,
       height: cropSize.height,
-      referenceDimensions,
+      referenceDimensions, // Smallest scaled image dimensions (crop bounds)
+      scalingInfo, // Contains per-image scale factors
       includedImages: images.filter(img => img.included).map(img => img.index)
     }
     
@@ -616,8 +679,8 @@ function BatchCropModal({ files, onApply, onCancel }) {
               if (!image || !image.included) return null
               
               const opacity = calculateOpacity(stackIndex)
-              const displaySize = getImageDisplaySize(image.dimensions)
-              const imagePosition = getImagePosition(image.dimensions)
+              const displaySize = getImageDisplaySize(image.dimensions, imageIndex)
+              const imagePosition = getImagePosition(image.dimensions, imageIndex)
               
               return (
                 <div
@@ -643,28 +706,28 @@ function BatchCropModal({ files, onApply, onCancel }) {
               )
             })}
             
-            {/* Smallest Image Boundary Indicator */}
-            {imageRect.width > 0 && (
+            {/* Grey Crop Bounds Box - shows smallest scaled image limits */}
+            {boundsRect.width > 0 && (
               <div 
-                className="batch-crop-bounds-indicator"
+                className="batch-crop-bounds-box"
                 style={{
-                  width: `${imageRect.width}px`,
-                  height: `${imageRect.height}px`,
-                  left: `${imageRect.left}px`,
-                  top: `${imageRect.top}px`,
+                  width: `${boundsRect.width}px`,
+                  height: `${boundsRect.height}px`,
+                  left: `${boundsRect.left}px`,
+                  top: `${boundsRect.top}px`,
                 }}
               />
             )}
 
-            {/* Crop Overlay */}
-            {imageRect.width > 0 && (
+            {/* Crop Overlay - constrained within bounds box */}
+            {boundsRect.width > 0 && (
               <div 
                 className="batch-crop-mask"
                 style={{
-                  width: `${imageRect.width}px`,
-                  height: `${imageRect.height}px`,
-                  left: `${imageRect.left}px`,
-                  top: `${imageRect.top}px`,
+                  width: `${boundsRect.width}px`,
+                  height: `${boundsRect.height}px`,
+                  left: `${boundsRect.left}px`,
+                  top: `${boundsRect.top}px`,
                 }}
               >
                 <div

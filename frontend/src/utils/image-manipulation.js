@@ -239,10 +239,13 @@ export async function normalizeTo72dpi(file) {
  * @returns {Promise<Array<File>>} - Array of cropped image files
  */
 export async function batchCropImages(files, cropData) {
-  const { x, y, width, height, referenceDimensions, includedImages } = cropData
+  const { x, y, width, height, referenceDimensions, scalingInfo, includedImages } = cropData
   
-  // Calculate crop center offset from reference image center
-  // This allows us to apply the same crop position relative to each image's center
+  // Crop coordinates are in "smallest scaled image" space
+  // referenceDimensions = smallest image dimensions * its scale factor
+  // We need to convert these to each image's native pixel coordinates
+  
+  // Calculate crop center offset from reference center (in scaled space)
   const refCenterX = referenceDimensions.width / 2
   const refCenterY = referenceDimensions.height / 2
   const cropCenterX = x + width / 2
@@ -250,7 +253,8 @@ export async function batchCropImages(files, cropData) {
   const offsetFromCenterX = cropCenterX - refCenterX
   const offsetFromCenterY = cropCenterY - refCenterY
   
-  // Output dimensions are always the same (from the crop box)
+  // Output dimensions are always the same (from the crop box in scaled space)
+  // This is what ALL output images will be resized to
   const outputWidth = Math.round(width)
   const outputHeight = Math.round(height)
   
@@ -269,23 +273,36 @@ export async function batchCropImages(files, cropData) {
       // Load image to get dimensions
       const img = await loadImageFromFile(file)
       
-      // Calculate crop position for this image using center-relative coordinates
-      // The crop center is at the same offset from this image's center as it was from the reference
+      // Get this image's scale factor (to convert from scaled space to native pixels)
+      const imageScaleFactor = scalingInfo?.imageScaleFactors?.[i] || 1
+      
+      // Convert offset from scaled space to this image's native pixel space
+      // If this image was scaled down (factor < 1), the offset needs to be scaled up
+      const nativeOffsetX = offsetFromCenterX / imageScaleFactor
+      const nativeOffsetY = offsetFromCenterY / imageScaleFactor
+      
+      // Calculate crop position in native pixels
       const imgCenterX = img.width / 2
       const imgCenterY = img.height / 2
-      const scaledCropCenterX = imgCenterX + offsetFromCenterX
-      const scaledCropCenterY = imgCenterY + offsetFromCenterY
+      const nativeCropCenterX = imgCenterX + nativeOffsetX
+      const nativeCropCenterY = imgCenterY + nativeOffsetY
+      
+      // Convert crop dimensions from scaled space to native pixels
+      // This is the region we'll extract from this image
+      const nativeCropWidth = Math.round(outputWidth / imageScaleFactor)
+      const nativeCropHeight = Math.round(outputHeight / imageScaleFactor)
       
       // Convert crop center to top-left corner
-      const scaledX = Math.round(scaledCropCenterX - outputWidth / 2)
-      const scaledY = Math.round(scaledCropCenterY - outputHeight / 2)
+      const cropX = Math.round(nativeCropCenterX - nativeCropWidth / 2)
+      const cropY = Math.round(nativeCropCenterY - nativeCropHeight / 2)
       
       // Ensure crop stays within bounds
-      const finalX = Math.max(0, Math.min(scaledX, img.width - outputWidth))
-      const finalY = Math.max(0, Math.min(scaledY, img.height - outputHeight))
+      const finalX = Math.max(0, Math.min(cropX, img.width - nativeCropWidth))
+      const finalY = Math.max(0, Math.min(cropY, img.height - nativeCropHeight))
       
-      const croppedFile = await cropImageWithCoordinates(
-        file, finalX, finalY, outputWidth, outputHeight
+      // Crop and resize to uniform output dimensions
+      const croppedFile = await cropAndResizeImage(
+        file, finalX, finalY, nativeCropWidth, nativeCropHeight, outputWidth, outputHeight
       )
       
       croppedFiles.push(croppedFile)
@@ -348,6 +365,72 @@ function cropImageWithCoordinates(file, x, y, width, height) {
           img,
           x, y, width, height,  // Source crop
           0, 0, width, height   // Destination
+        )
+        
+        // Convert to blob then to file
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error('Failed to create cropped image'))
+            return
+          }
+          
+          // Create new File from blob
+          const croppedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          })
+          
+          URL.revokeObjectURL(url)
+          resolve(croppedFile)
+        }, file.type || 'image/png')
+      } catch (err) {
+        URL.revokeObjectURL(url)
+        reject(err)
+      }
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
+    
+    img.src = url
+  })
+}
+
+/**
+ * Crop image and resize to uniform output dimensions
+ * @param {File} file - Image file to crop
+ * @param {number} x - X coordinate in pixels
+ * @param {number} y - Y coordinate in pixels
+ * @param {number} cropWidth - Crop width in pixels (source region)
+ * @param {number} cropHeight - Crop height in pixels (source region)
+ * @param {number} outputWidth - Output width in pixels
+ * @param {number} outputHeight - Output height in pixels
+ * @returns {Promise<File>} - Cropped and resized image as File
+ */
+function cropAndResizeImage(file, x, y, cropWidth, cropHeight, outputWidth, outputHeight) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      try {
+        // Create canvas at output dimensions
+        const canvas = document.createElement('canvas')
+        canvas.width = outputWidth
+        canvas.height = outputHeight
+        const ctx = canvas.getContext('2d')
+        
+        // Use high-quality image smoothing
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        
+        // Draw cropped portion scaled to output size
+        ctx.drawImage(
+          img,
+          x, y, cropWidth, cropHeight,    // Source crop region
+          0, 0, outputWidth, outputHeight  // Destination (scaled to output)
         )
         
         // Convert to blob then to file

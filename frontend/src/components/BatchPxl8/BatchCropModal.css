@@ -228,17 +228,18 @@ body.dark-mode .batch-crop-preview-container {
   /* Positioned explicitly via inline styles from getImagePosition() */
 }
 
-/* Smallest Image Boundary Indicator */
-.batch-crop-bounds-indicator {
+/* Grey Crop Bounds Box - shows smallest scaled image limits */
+.batch-crop-bounds-box {
   position: absolute;
-  border: 2px solid rgba(180, 180, 180, 0.7);
+  border: 2px dashed #888;
+  background: transparent;
   pointer-events: none;
-  z-index: 500;
+  z-index: 50;
   box-sizing: border-box;
 }
 
-body.dark-mode .batch-crop-bounds-indicator {
-  border-color: rgba(200, 200, 200, 0.5);
+body.dark-mode .batch-crop-bounds-box {
+  border-color: #aaa;
 }
 
 /* Crop Mask and Overlay */
