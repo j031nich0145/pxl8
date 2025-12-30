@@ -722,82 +722,82 @@ function BatchCropModal({ files, onApply, onCancel }) {
           </div>
 
           {/* Right - Preview Container */}
-          <div className="batch-crop-preview-container" ref={containerRef}>
-            <div className="batch-crop-stack-wrapper" ref={stackRef}>
-              {/* Render images in stack order with onion skin effect */}
-              {stackOrder.map((imageIndex, stackIndex) => {
-                const image = images[imageIndex]
-                if (!image || !image.included) return null
-                
-                const opacity = calculateOpacity(stackIndex)
+        <div className="batch-crop-preview-container" ref={containerRef}>
+          <div className="batch-crop-stack-wrapper" ref={stackRef}>
+            {/* Render images in stack order with onion skin effect */}
+            {stackOrder.map((imageIndex, stackIndex) => {
+              const image = images[imageIndex]
+              if (!image || !image.included) return null
+              
+              const opacity = calculateOpacity(stackIndex)
                 const displaySize = getImageDisplaySize(image.dimensions, imageIndex)
                 const imagePosition = getImagePosition(image.dimensions, imageIndex)
-                
-                return (
-                  <div
-                    key={`stack-${imageIndex}`}
-                    className="batch-crop-stack-layer"
+              
+              return (
+                <div
+                  key={`stack-${imageIndex}`}
+                  className="batch-crop-stack-layer"
+                  style={{
+                    opacity,
+                    zIndex: stackOrder.length - stackIndex
+                  }}
+                >
+                  <img
+                    src={image.url}
+                    alt={image.file.name}
+                    className="batch-crop-stack-image"
                     style={{
-                      opacity,
-                      zIndex: stackOrder.length - stackIndex
-                    }}
-                  >
-                    <img
-                      src={image.url}
-                      alt={image.file.name}
-                      className="batch-crop-stack-image"
-                      style={{
-                        width: displaySize.width > 0 ? `${displaySize.width}px` : 'auto',
-                        height: displaySize.height > 0 ? `${displaySize.height}px` : 'auto',
+                      width: displaySize.width > 0 ? `${displaySize.width}px` : 'auto',
+                      height: displaySize.height > 0 ? `${displaySize.height}px` : 'auto',
                         left: `${imagePosition.left}px`,
                         top: `${imagePosition.top}px`,
-                      }}
-                    />
-                  </div>
-                )
-              })}
-              
+                    }}
+                  />
+                </div>
+              )
+            })}
+            
               {/* Grey Crop Bounds Box - shows reference image limits */}
               {boundsRect.width > 0 && (
-                <div 
+              <div 
                   className="batch-crop-bounds-box"
-                  style={{
+                style={{
                     width: `${boundsRect.width}px`,
                     height: `${boundsRect.height}px`,
                     left: `${boundsRect.left}px`,
                     top: `${boundsRect.top}px`,
-                  }}
-                />
-              )}
+                }}
+              />
+            )}
 
               {/* Crop Overlay - constrained within bounds box */}
               {boundsRect.width > 0 && (
-                <div 
-                  className="batch-crop-mask"
-                  style={{
+              <div 
+                className="batch-crop-mask"
+                style={{
                     width: `${boundsRect.width}px`,
                     height: `${boundsRect.height}px`,
                     left: `${boundsRect.left}px`,
                     top: `${boundsRect.top}px`,
+                }}
+              >
+                <div
+                  className="batch-crop-overlay"
+                  style={{
+                    left: `${displayX}px`,
+                    top: `${displayY}px`,
+                    width: `${displayWidth}px`,
+                    height: `${displayHeight}px`,
+                    borderColor: colors[cropColor],
                   }}
+                  onMouseDown={handleMouseDown}
                 >
-                  <div
-                    className="batch-crop-overlay"
-                    style={{
-                      left: `${displayX}px`,
-                      top: `${displayY}px`,
-                      width: `${displayWidth}px`,
-                      height: `${displayHeight}px`,
-                      borderColor: colors[cropColor],
-                    }}
-                    onMouseDown={handleMouseDown}
-                  >
-                    {renderGridLines()}
-                    <div className="batch-crop-handle" style={{ backgroundColor: colors[cropColor] }} />
-                  </div>
+                  {renderGridLines()}
+                  <div className="batch-crop-handle" style={{ backgroundColor: colors[cropColor] }} />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
           </div>
         </div>
 
@@ -832,16 +832,16 @@ function BatchCropModal({ files, onApply, onCancel }) {
           </div>
           
           <div className="batch-crop-action-buttons">
-            <button className="batch-crop-cancel-button" onClick={onCancel}>
-              Cancel
-            </button>
-            <button 
-              className="batch-crop-apply-button" 
-              onClick={handleApplyCrop}
-              disabled={includedCount === 0}
-            >
-              Apply Crop to {includedCount} image{includedCount !== 1 ? 's' : ''}
-            </button>
+          <button className="batch-crop-cancel-button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button 
+            className="batch-crop-apply-button" 
+            onClick={handleApplyCrop}
+            disabled={includedCount === 0}
+          >
+            Apply Crop to {includedCount} image{includedCount !== 1 ? 's' : ''}
+          </button>
           </div>
         </div>
       </div>

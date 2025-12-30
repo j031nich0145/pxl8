@@ -166,9 +166,9 @@ function BatchImagePreviewModal({ imageUrl, imageName, imageDimensions, targetDi
           <div className="batch-image-preview-info">
             <div className="batch-image-preview-header">
               <div className="batch-image-preview-filename-wrapper">
-                {imageName && (
-                  <div className="batch-image-preview-filename">{imageName}</div>
-                )}
+            {imageName && (
+              <div className="batch-image-preview-filename">{imageName}</div>
+            )}
               </div>
               {hasPixelated && viewMode === 'pixelated' && (
                 <button

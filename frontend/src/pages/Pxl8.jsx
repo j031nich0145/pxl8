@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ImageUpload from '../components/ImageUpload'
 import PixelationControls from '../components/PixelationControls'
 import ImagePreview from '../components/ImagePreview'
+import InfoModal from '../components/InfoModal'
 import { pixelateImage } from '../utils/pixelation-client'
 import { cropImage, normalizeTo72dpi, rotateImage90CW } from '../utils/image-manipulation'
 import { saveSettings, getSettings } from '../utils/settings-manager'
@@ -25,6 +26,9 @@ function Pxl8() {
     const saved = localStorage.getItem('pxl8_dark_mode')
     return saved === 'true' ? true : false
   })
+  
+  // Info modal state
+  const [showInfoModal, setShowInfoModal] = useState(false)
 
   // Download counter - initialized from localStorage
   const [downloadCount, setDownloadCount] = useState(() => {
@@ -630,6 +634,14 @@ function Pxl8() {
       </div>
 
       <footer className="app-footer">
+        <button 
+          className="footer-info-button" 
+          onClick={() => setShowInfoModal(true)}
+          title="App Usage Guide"
+        >
+          ⓘ
+        </button>
+        <span className="footer-separator">•</span>
         <a href="#" className="footer-link">Background Removal Tool</a>
         <span className="footer-separator">•</span>
         <a href="https://github.com/j031nich0145/j031nich0145/blob/main/LICENSING.md" 
@@ -646,6 +658,9 @@ function Pxl8() {
           Buy Us Coffee
         </a>
       </footer>
+
+      {/* Info Modal */}
+      <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
     </div>
   )
 }

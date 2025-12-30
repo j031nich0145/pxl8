@@ -138,4 +138,34 @@
   color: #616161;
 }
 
+.pxl-batch .footer-info-button {
+  background: none;
+  border: none;
+  color: #00838f;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  transition: color 0.3s ease, transform 0.2s ease;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.pxl-batch.dark-mode .footer-info-button {
+  color: #64b5f6;
+}
+
+.pxl-batch .footer-info-button:hover {
+  color: #006064;
+  transform: scale(1.1);
+}
+
+.pxl-batch.dark-mode .footer-info-button:hover {
+  color: #90caf9;
+}
+
+.pxl-batch .footer-info-button:active {
+  transform: scale(0.95);
+}
+
 

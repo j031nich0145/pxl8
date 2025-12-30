@@ -6,6 +6,7 @@ import BatchPreviewInfoCard from '../components/BatchPxl8/BatchPreviewInfoCard'
 import BatchImagePreviewModal from '../components/BatchPxl8/BatchImagePreviewModal'
 import BatchCropModal from '../components/BatchPxl8/BatchCropModal'
 import BatchCrunchModal from '../components/BatchPxl8/BatchCrunchModal'
+import InfoModal from '../components/InfoModal'
 import { getSettings } from '../utils/settings-manager'
 import { loadPixelatedImage, getPixelatedImageUrl, getPixelatedImageInfo, savePixelatedImage, saveMainImage, saveBatchImages, loadBatchImages, getMainImageUrl, loadMainImage } from '../utils/image-state-manager'
 import { pixelateImage } from '../utils/pixelation-client'
@@ -42,6 +43,7 @@ function PxlBatch() {
   })
   const [showBatchCropModal, setShowBatchCropModal] = useState(false)
   const [showBatchCrunchModal, setShowBatchCrunchModal] = useState(false)
+  const [showInfoModal, setShowInfoModal] = useState(false)
   const fileInputRef = useRef(null)
 
   // Load settings on mount
@@ -848,6 +850,14 @@ function PxlBatch() {
 
       {/* Footer */}
       <footer className="app-footer">
+        <button 
+          className="footer-info-button" 
+          onClick={() => setShowInfoModal(true)}
+          title="App Usage Guide"
+        >
+          ⓘ
+        </button>
+        <span className="footer-separator">•</span>
         <a href="#" className="footer-link">Background Removal Tool</a>
         <span className="footer-separator">•</span>
         <a href="https://github.com/j031nich0145/j031nich0145/blob/main/LICENSING.md" 
@@ -864,6 +874,9 @@ function PxlBatch() {
           Buy Us Coffee
         </a>
       </footer>
+
+      {/* Info Modal */}
+      <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
     </div>
   )
 }
