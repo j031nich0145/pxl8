@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import './BatchThumbnailsGrid.css'
 
-function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, onRemove, onUploadClick, onTargetImageChange, disabled, results, processedImageUrls, previewInfoCard, onThumbnailClick }) {
+function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, onRemove, onUploadClick, onTargetImageChange, disabled, results, processedImageUrls, previewInfoCard, onThumbnailClick, hasTargetImage }) {
   const [urls, setUrls] = useState({})
   const [isHoveringTarget, setIsHoveringTarget] = useState(false)
+
+  // Calculate if target is included in results (at index 0)
+  const targetInResults = hasTargetImage && results && results.length > 0
 
   useEffect(() => {
     const newUrls = {}
@@ -25,9 +28,14 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
       <div className="thumbnails-grid">
         {/* Target Image or Upload Placeholder (first grid item) */}
         {targetImageUrl ? (
-          <div className="thumbnail-item target-thumbnail" title="Target Image">
+          <div className={`thumbnail-item target-thumbnail ${targetInResults && processedImageUrls && processedImageUrls[0] ? 'thumbnail-processed' : ''}`} title="Target Image">
             <img 
-              src={isHoveringTarget && originalTargetImageUrl ? originalTargetImageUrl : targetImageUrl}
+              src={
+                // Show processed URL if available, otherwise show original/pixelated on hover
+                (processedImageUrls && processedImageUrls[0]) 
+                  ? processedImageUrls[0]
+                  : (isHoveringTarget && originalTargetImageUrl ? originalTargetImageUrl : targetImageUrl)
+              }
               alt="Target image"
               className="thumbnail-image"
               onMouseEnter={() => setIsHoveringTarget(true)}
@@ -35,7 +43,7 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
               onClick={() => {
                 if (onThumbnailClick) {
                   // Don't detect dimensions - let PxlBatch use pixelatedImageInfo
-                  onThumbnailClick(targetImageUrl, 'Target Image', null, 0)
+                  onThumbnailClick(processedImageUrls?.[0] || targetImageUrl, 'Target Image', null, 0)
                 }
               }}
               style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
@@ -55,6 +63,15 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
                 </button>
               </div>
             )}
+            {/* Progress bar overlay for target image */}
+            {targetInResults && results[0] && results[0].status === 'processing' && (
+              <div className="thumbnail-progress-overlay">
+                <div 
+                  className="thumbnail-progress-bar"
+                  style={{ width: `${results[0].progress || 0}%` }}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <button 
@@ -70,11 +87,14 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
 
         {/* Batch Thumbnails */}
         {files && files.map((file, index) => {
+          // Calculate result index: if target is in results, batch files start at index 1
+          const resultIndex = hasTargetImage ? index + 1 : index
+          
           // Use processed image URL if available, otherwise use original
-          const imageUrl = processedImageUrls && processedImageUrls[index] 
-            ? processedImageUrls[index] 
+          const imageUrl = processedImageUrls && processedImageUrls[resultIndex] 
+            ? processedImageUrls[resultIndex] 
             : urls[index]
-          const isProcessed = processedImageUrls && processedImageUrls[index]
+          const isProcessed = processedImageUrls && processedImageUrls[resultIndex]
           
           return (
           <div key={index} className={`thumbnail-item ${isProcessed ? 'thumbnail-processed' : ''}`} title={file.name}>
@@ -85,9 +105,8 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
                 className="thumbnail-image"
                 onClick={() => {
                   if (onThumbnailClick) {
-                    const imageIndex = targetImageUrl ? index + 1 : index // Offset by 1 if target image exists
-                    // Don't detect dimensions here - let PxlBatch use results array
-                    onThumbnailClick(imageUrl, file.name, null, imageIndex)
+                    // Use resultIndex for navigation (target at 0, batch files at 1+)
+                    onThumbnailClick(imageUrl, file.name, null, resultIndex)
                   }
                 }}
                 style={{ cursor: onThumbnailClick ? 'pointer' : 'default' }}
@@ -107,11 +126,11 @@ function BatchThumbnailsGrid({ targetImageUrl, originalTargetImageUrl, files, on
               </button>
             </div>
             {/* Progress bar overlay */}
-            {results && results[index] && results[index].status === 'processing' && (
+            {results && results[resultIndex] && results[resultIndex].status === 'processing' && (
               <div className="thumbnail-progress-overlay">
                 <div 
                   className="thumbnail-progress-bar"
-                  style={{ width: `${results[index].progress || 0}%` }}
+                  style={{ width: `${results[resultIndex].progress || 0}%` }}
                 />
               </div>
             )}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './BatchCropModal.css'
 
-function BatchCropModal({ files, onApply, onCancel }) {
+function BatchCropModal({ files, targetImageFile, onApply, onCancel }) {
   // Image state
   const [images, setImages] = useState([])
   const [stackOrder, setStackOrder] = useState([])
@@ -51,10 +51,11 @@ function BatchCropModal({ files, onApply, onCancel }) {
     white: '#ffffff'
   }
 
-  // Initialize images from files
+  // Initialize images from files (target image is first if present)
   useEffect(() => {
     const loadImages = async () => {
       const imagePromises = files.map((file, index) => {
+        const isTarget = targetImageFile && index === 0
         return new Promise((resolve) => {
           const url = URL.createObjectURL(file)
           const img = new Image()
@@ -64,7 +65,8 @@ function BatchCropModal({ files, onApply, onCancel }) {
               url,
               included: true,
               dimensions: { width: img.width, height: img.height },
-              index
+              index,
+              isTargetImage: isTarget
             })
           }
           img.onerror = () => {
@@ -73,7 +75,8 @@ function BatchCropModal({ files, onApply, onCancel }) {
               url,
               included: false,
               dimensions: { width: 0, height: 0 },
-              index
+              index,
+              isTargetImage: isTarget
             })
           }
           img.src = url

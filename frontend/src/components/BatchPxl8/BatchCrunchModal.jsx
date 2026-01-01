@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import './BatchCrunchModal.css'
 
-function BatchCrunchModal({ files, onCrunch, onCropFirst, onCancel }) {
+function BatchCrunchModal({ files, targetImageFile, onCrunch, onCropFirst, onCancel }) {
   const [imageSizes, setImageSizes] = useState([])
   const [allSameSize, setAllSameSize] = useState(true)
   const [loading, setLoading] = useState(true)

@@ -37,6 +37,7 @@ function PxlBatch() {
   })
   const [originalTargetImageUrl, setOriginalTargetImageUrl] = useState(null)
   const [originalTargetFilename, setOriginalTargetFilename] = useState(null)
+  const [targetImageFile, setTargetImageFile] = useState(null) // Target image as File for batch operations
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('pxl8_dark_mode')
     return saved === 'true'
@@ -88,7 +89,7 @@ function PxlBatch() {
         }
       }
       
-      // Load main image (original) with filename
+      // Load main image (original) with filename and file object
       const mainImageData = await loadMainImage()
       if (mainImageData) {
         setOriginalTargetImageUrl(mainImageData.blob 
@@ -96,6 +97,10 @@ function PxlBatch() {
           : null)
         // Store filename for use in modal
         setOriginalTargetFilename(mainImageData.filename || 'image.png')
+        // Store file object for batch operations
+        if (mainImageData.file) {
+          setTargetImageFile(mainImageData.file)
+        }
       }
       
       // Load batch images
@@ -128,6 +133,20 @@ function PxlBatch() {
     const normalizedLevel = (clampedLevel - 1) / 9
     const pixelSize = Math.round(1 + Math.pow(normalizedLevel, 2) * 99)
     return Math.max(1, Math.min(100, pixelSize))
+  }
+
+  // Get all batch images including target as first item
+  const getAllBatchImages = () => {
+    const allImages = []
+    if (targetImageFile) {
+      allImages.push(targetImageFile)
+    }
+    return [...allImages, ...files]
+  }
+
+  // Check if target image exists (for conditional logic)
+  const hasTargetImage = () => {
+    return targetImageFile !== null
   }
 
   // Handle upload button click
@@ -172,18 +191,24 @@ function PxlBatch() {
     }
   }
 
-  // Remove file from batch
+  // Remove file from batch (index is the files array index, not result index)
   const handleRemoveFile = (index) => {
+    const hasTarget = hasTargetImage()
     const newFiles = files.filter((_, i) => i !== index)
     const newProcessedUrls = { ...processedImageUrls }
-    const newResults = results.filter((_, i) => i !== index)
     
-    // Remove the processed URL for this index and reindex remaining ones
-    delete newProcessedUrls[index]
+    // Calculate the result index for this file (offset by 1 if target exists)
+    const resultIndex = hasTarget ? index + 1 : index
+    
+    // Remove result at the correct index, keeping target at index 0 if it exists
+    const newResults = results.filter((_, i) => i !== resultIndex)
+    
+    // Remove the processed URL for this result index and reindex remaining ones
+    delete newProcessedUrls[resultIndex]
     const reindexedUrls = {}
     Object.keys(newProcessedUrls).forEach(key => {
       const keyNum = parseInt(key)
-      if (keyNum > index) {
+      if (keyNum > resultIndex) {
         reindexedUrls[keyNum - 1] = newProcessedUrls[key]
       } else {
         reindexedUrls[key] = newProcessedUrls[key]
@@ -207,16 +232,19 @@ function PxlBatch() {
 
   // Preview all images (process and replace thumbnails in-place)
   const handlePreviewAll = async () => {
-    if (files.length === 0 || !settings || !pixelatedImageInfo) return
+    const allImages = getAllBatchImages()
+    if (allImages.length === 0 || !settings || !pixelatedImageInfo) return
     
     setProcessing(true)
     setResults([])
+    setProcessedImageUrls({}) // Clear previous processed URLs
     
     const crunchCount = pixelatedImageInfo.crunchCount || 0
     console.log('Processing batch with crunchCount:', crunchCount) // Debug log
+    console.log('Processing', allImages.length, 'images (including target)') // Debug log
     
-    // Initialize results array
-    const initialResults = files.map(file => ({
+    // Initialize results array for all images (target + batch)
+    const initialResults = allImages.map((file, idx) => ({
       file,
       progress: 0,
       status: 'processing',
@@ -224,13 +252,15 @@ function PxlBatch() {
       error: null,
       originalDimensions: null,
       pixelatedDimensions: null,
-      targetDimensions: null
+      targetDimensions: null,
+      isTargetImage: hasTargetImage() && idx === 0
     }))
     setResults(initialResults)
     
     // Process sequentially
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
+    for (let i = 0; i < allImages.length; i++) {
+      const file = allImages[i]
+      const isTarget = hasTargetImage() && i === 0
       
       try {
         // Calculate target dimensions
@@ -242,7 +272,7 @@ function PxlBatch() {
             try {
               // Store original dimensions immediately
               const originalDims = { width: img.width, height: img.height }
-              console.log(`Stored original dimensions for image ${i}:`, originalDims)
+              console.log(`Stored original dimensions for image ${i}${isTarget ? ' (target)' : ''}:`, originalDims)
               setResults(prev => {
                 const updated = [...prev]
                 updated[i] = {
@@ -363,6 +393,17 @@ function PxlBatch() {
                   ...prev,
                   [i]: blobUrl
                 }))
+                
+                // If this is the target image, also update the pixelated image URL and save to storage
+                if (isTarget) {
+                  setPixelatedImageUrl(blobUrl)
+                  // Save updated pixelated image to storage
+                  savePixelatedImage(blob, {
+                    ...pixelatedImageInfo,
+                    pixelatedDimensions: { width: pixelatedImg.width, height: pixelatedImg.height }
+                  }).catch(err => console.error('Failed to save updated target image:', err))
+                }
+                
                 URL.revokeObjectURL(imgUrl)
                 resolve()
               }).catch(error => {
@@ -442,12 +483,17 @@ function PxlBatch() {
     try {
       const zip = new JSZip()
       
-      // Add each processed image to zip
-      completedResults.forEach((result) => {
-        zip.file(`pixelated_${result.file.name}`, result.processedBlob)
+      // Add each processed image to zip (target image at index 0 if present)
+      completedResults.forEach((result, index) => {
+        // Use original target filename for target image, otherwise use file name
+        const isTarget = result.isTargetImage
+        const filename = isTarget && originalTargetFilename 
+          ? `pixelated_${originalTargetFilename}`
+          : `pixelated_${result.file.name}`
+        zip.file(filename, result.processedBlob)
       })
       
-      console.log(`Creating zip with ${completedResults.length} images`) // Debug log
+      console.log(`Creating zip with ${completedResults.length} images (including target)`) // Debug log
       
       // Generate zip file
       const zipBlob = await zip.generateAsync({ type: 'blob' })
@@ -494,12 +540,15 @@ function PxlBatch() {
   }
 
   const handleClear = () => {
+    // Only clear batch files, keep target image intact
     setFiles([])
     setResults([])
-    // Clear batch images from localStorage
+    setProcessedImageUrls({})
+    // Clear batch images from localStorage (target image remains in main image storage)
     saveBatchImages([]).catch(err => {
       console.error('Failed to clear batch images:', err)
     })
+    // Note: Target image (targetImageFile, pixelatedImageUrl, etc.) is NOT cleared
   }
 
   const handleClearResults = () => {
@@ -514,7 +563,8 @@ function PxlBatch() {
 
   // Handle batch crop
   const handleBatchCrop = () => {
-    if (files.length === 0) {
+    const allImages = getAllBatchImages()
+    if (allImages.length === 0) {
       alert('Please upload images first')
       return
     }
@@ -528,18 +578,53 @@ function PxlBatch() {
       setProcessing(true)
       setShowBatchCropModal(false)
       
-      // Apply crop to all included images
-      const croppedFiles = await batchCropImages(files, cropData)
+      const allImages = getAllBatchImages()
+      const hasTarget = hasTargetImage()
       
-      // Update files array with cropped versions
-      setFiles(croppedFiles)
+      // Apply crop to all included images (including target)
+      const croppedFiles = await batchCropImages(allImages, cropData)
+      
+      // Split results: first item is target (if exists), rest are batch files
+      if (hasTarget && croppedFiles.length > 0) {
+        const croppedTarget = croppedFiles[0]
+        const croppedBatch = croppedFiles.slice(1)
+        
+        // Update target image file
+        setTargetImageFile(croppedTarget)
+        
+        // Get cropped target dimensions for saving
+        const targetDims = await new Promise((resolve) => {
+          const img = new Image()
+          img.onload = () => resolve({ width: img.width, height: img.height })
+          img.onerror = () => resolve(pixelatedImageInfo?.originalDimensions || { width: 800, height: 600 })
+          img.src = URL.createObjectURL(croppedTarget)
+        })
+        
+        // Save cropped target to main image storage
+        await saveMainImage(croppedTarget, targetDims, originalTargetFilename)
+        
+        // Update original target image URL for display
+        setOriginalTargetImageUrl(URL.createObjectURL(croppedTarget))
+        
+        // Update pixelatedImageInfo with new dimensions
+        const updatedInfo = {
+          ...pixelatedImageInfo,
+          originalDimensions: targetDims
+        }
+        setPixelatedImageInfo(updatedInfo)
+        
+        // Update batch files
+        setFiles(croppedBatch)
+        await saveBatchImages(croppedBatch)
+      } else {
+        // No target, just update batch files
+        setFiles(croppedFiles)
+        await saveBatchImages(croppedFiles)
+      }
       
       // Clear processed results since images changed
       setResults([])
       setProcessedImageUrls({})
-      
-      // Save updated batch images
-      await saveBatchImages(croppedFiles)
       
       alert(`Successfully cropped ${cropData.includedImages.length} image${cropData.includedImages.length !== 1 ? 's' : ''}`)
     } catch (error) {
@@ -557,7 +642,8 @@ function PxlBatch() {
 
   // Handle batch crunch click
   const handleBatchCrunchClick = () => {
-    if (files.length === 0) {
+    const allImages = getAllBatchImages()
+    if (allImages.length === 0) {
       alert('Please upload images first')
       return
     }
@@ -567,16 +653,19 @@ function PxlBatch() {
 
   // Handle batch crunch operation
   const handleBatchCrunch = async (crunchCount = 1) => {
-    if (files.length === 0) return
+    const allImages = getAllBatchImages()
+    if (allImages.length === 0) return
     
     setProcessing(true)
     setShowBatchCrunchModal(false)
     
+    const hasTarget = hasTargetImage()
+    
     try {
       const crunchedFiles = []
       
-      for (let i = 0; i < files.length; i++) {
-        let processedFile = files[i]
+      for (let i = 0; i < allImages.length; i++) {
+        let processedFile = allImages[i]
         
         // Apply crunch operation(s)
         for (let j = 0; j < crunchCount; j++) {
@@ -586,15 +675,47 @@ function PxlBatch() {
         crunchedFiles.push(processedFile)
       }
       
-      // Update files with crunched versions
-      setFiles(crunchedFiles)
+      // Split results: first item is target (if exists), rest are batch files
+      if (hasTarget && crunchedFiles.length > 0) {
+        const crunchedTarget = crunchedFiles[0]
+        const crunchedBatch = crunchedFiles.slice(1)
+        
+        // Update target image file
+        setTargetImageFile(crunchedTarget)
+        
+        // Get crunched target dimensions for saving
+        const targetDims = await new Promise((resolve) => {
+          const img = new Image()
+          img.onload = () => resolve({ width: img.width, height: img.height })
+          img.onerror = () => resolve(pixelatedImageInfo?.originalDimensions || { width: 800, height: 600 })
+          img.src = URL.createObjectURL(crunchedTarget)
+        })
+        
+        // Save crunched target to main image storage
+        await saveMainImage(crunchedTarget, targetDims, originalTargetFilename)
+        
+        // Update original target image URL for display
+        setOriginalTargetImageUrl(URL.createObjectURL(crunchedTarget))
+        
+        // Update pixelatedImageInfo with new dimensions
+        const updatedInfo = {
+          ...pixelatedImageInfo,
+          originalDimensions: targetDims
+        }
+        setPixelatedImageInfo(updatedInfo)
+        
+        // Update batch files
+        setFiles(crunchedBatch)
+        await saveBatchImages(crunchedBatch)
+      } else {
+        // No target, just update batch files
+        setFiles(crunchedFiles)
+        await saveBatchImages(crunchedFiles)
+      }
       
       // Clear processed results since images changed
       setResults([])
       setProcessedImageUrls({})
-      
-      // Save updated batch images
-      await saveBatchImages(crunchedFiles)
       
       alert(`Successfully crunched ${crunchedFiles.length} image${crunchedFiles.length !== 1 ? 's' : ''} ${crunchCount}×`)
     } catch (error) {
@@ -619,6 +740,7 @@ function PxlBatch() {
   // Handle thumbnail click to open preview modal
   const handleThumbnailClick = (imageUrl, imageName, imageDimensions, imageIndex) => {
     const isTargetImage = imageName === 'Target Image'
+    const hasTarget = hasTargetImage()
     
     // For batch images, get dimensions from results
     let originalUrl = null
@@ -626,28 +748,31 @@ function PxlBatch() {
     let pixelatedDims = null  // Will be set from results/pixelatedImageInfo
     let targetDims = null
     let displayName = imageName
-    let hasPixelated = false
+    let hasPixelatedVersion = false
     
     if (isTargetImage) {
       console.log('Target image click - pixelatedImageInfo:', pixelatedImageInfo)
       originalUrl = originalTargetImageUrl
       originalDims = pixelatedImageInfo?.originalDimensions || null
-      pixelatedDims = pixelatedImageInfo?.pixelatedDimensions || null
-      targetDims = pixelatedImageInfo?.targetDimensions || null
+      // Check if target has been processed in batch (results[0])
+      const targetResult = results[0]
+      pixelatedDims = targetResult?.pixelatedDimensions || pixelatedImageInfo?.pixelatedDimensions || null
+      targetDims = targetResult?.targetDimensions || pixelatedImageInfo?.targetDimensions || null
       displayName = originalTargetFilename || 'image.png'
-      hasPixelated = true  // Target always has pixelated version if it exists
+      hasPixelatedVersion = processedImageUrls[0] !== undefined || pixelatedImageUrl !== null
     } else if (imageIndex !== undefined) {
-      // Calculate batch file index
-      const fileIndex = pixelatedImageUrl ? imageIndex - 1 : imageIndex
+      // imageIndex is now the result index (target at 0, batch at 1+)
+      // Calculate the files array index
+      const fileIndex = hasTarget ? imageIndex - 1 : imageIndex
       if (fileIndex >= 0 && fileIndex < files.length) {
-        const result = results[fileIndex]
-        console.log(`Batch image ${fileIndex} click - result:`, result)
+        const result = results[imageIndex] // Use imageIndex directly for results
+        console.log(`Batch image ${fileIndex} (result index ${imageIndex}) click - result:`, result)
         originalUrl = URL.createObjectURL(files[fileIndex])
         originalDims = result?.originalDimensions || null
         pixelatedDims = result?.pixelatedDimensions || null
         targetDims = result?.targetDimensions || null
         // Check if this batch image has been processed
-        hasPixelated = processedImageUrls[fileIndex] !== undefined
+        hasPixelatedVersion = processedImageUrls[imageIndex] !== undefined
       }
     }
     
@@ -656,8 +781,8 @@ function PxlBatch() {
       pixelatedDims,
       targetDims,
       originalDims,
-      hasPixelated,
-      resultObject: isTargetImage ? pixelatedImageInfo : (imageIndex !== undefined ? results[pixelatedImageUrl ? imageIndex - 1 : imageIndex] : null)
+      hasPixelatedVersion,
+      resultObject: results[imageIndex]
     })
     
     setPreviewModal({
@@ -669,7 +794,7 @@ function PxlBatch() {
       originalImageUrl: originalUrl,
       originalImageDimensions: originalDims,
       isTargetImage,
-      hasPixelated,
+      hasPixelated: hasPixelatedVersion,
       currentIndex: imageIndex !== undefined ? imageIndex : 0
     })
   }
@@ -678,25 +803,28 @@ function PxlBatch() {
   const handlePreviewNavigate = (direction) => {
     // Build list of all images (target + batch files)
     const allImages = []
+    const hasTarget = hasTargetImage()
     
-    // Add target image if it exists
-    if (pixelatedImageUrl) {
+    // Add target image if it exists (index 0)
+    if (hasTarget) {
+      const targetResult = results[0]
       allImages.push({
-        url: pixelatedImageUrl,
+        url: processedImageUrls[0] || pixelatedImageUrl,
         name: originalTargetFilename || 'image.png',
-        dimensions: pixelatedImageInfo?.pixelatedDimensions || null,
-        targetDimensions: pixelatedImageInfo?.targetDimensions || null,
+        dimensions: targetResult?.pixelatedDimensions || pixelatedImageInfo?.pixelatedDimensions || null,
+        targetDimensions: targetResult?.targetDimensions || pixelatedImageInfo?.targetDimensions || null,
         originalUrl: originalTargetImageUrl,
         originalDimensions: pixelatedImageInfo?.originalDimensions || null,
         isTarget: true,
-        hasPixelated: true
+        hasPixelated: processedImageUrls[0] !== undefined || pixelatedImageUrl !== null
       })
     }
     
-    // Add batch files
+    // Add batch files (indices 1+ in results if target exists)
     files.forEach((file, index) => {
-      const result = results[index]
-      const processedUrl = processedImageUrls[index]
+      const resultIndex = hasTarget ? index + 1 : index
+      const result = results[resultIndex]
+      const processedUrl = processedImageUrls[resultIndex]
       
       allImages.push({
         url: processedUrl || URL.createObjectURL(file),
@@ -780,6 +908,7 @@ function PxlBatch() {
           results={results}
           processedImageUrls={processedImageUrls}
           onThumbnailClick={handleThumbnailClick}
+          hasTargetImage={hasTargetImage()}
           previewInfoCard={
             results.length > 0 && !processing && completedResults.length > 0 ? (
               <BatchPreviewInfoCard
@@ -805,14 +934,15 @@ function PxlBatch() {
           isOpen={previewModal.isOpen}
           onClose={handleCloseModal}
           currentIndex={previewModal.currentIndex}
-          totalImages={(pixelatedImageUrl ? 1 : 0) + files.length}
+          totalImages={(hasTargetImage() ? 1 : 0) + files.length}
           onNavigate={handlePreviewNavigate}
         />
 
         {/* Batch Crop Modal */}
         {showBatchCropModal && (
           <BatchCropModal
-            files={files}
+            files={getAllBatchImages()}
+            targetImageFile={targetImageFile}
             onApply={handleBatchCropApply}
             onCancel={handleBatchCropCancel}
           />
@@ -821,7 +951,8 @@ function PxlBatch() {
         {/* Batch Crunch Modal */}
         {showBatchCrunchModal && (
           <BatchCrunchModal
-            files={files}
+            files={getAllBatchImages()}
+            targetImageFile={targetImageFile}
             onCrunch={handleBatchCrunch}
             onCropFirst={handleCrunchCropFirst}
             onCancel={handleBatchCrunchCancel}
@@ -834,14 +965,14 @@ function PxlBatch() {
           mainImageDimensions={pixelatedImageInfo?.originalDimensions || { width: 0, height: 0 }}
           targetDimensions={pixelatedImageInfo?.targetDimensions || { width: 0, height: 0 }}
           pixelSize={pixelatedImageInfo?.pixelSize || 0}
-          batchCount={files.length}
+          batchCount={getAllBatchImages().length}
           onUpload={handleUploadClick}
           onDownload={handleDownloadZip}
           onProcessAll={handlePreviewAll}
           onBatchCrop={handleBatchCrop}
           onBatchCrunch={handleBatchCrunchClick}
           onClear={handleClear}
-          showProcessButtons={files.length > 0 && !processing}
+          showProcessButtons={getAllBatchImages().length > 0 && !processing}
           canDownload={completedResults.length > 0}
           darkMode={darkMode}
           onDarkModeChange={setDarkMode}
